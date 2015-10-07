@@ -16,19 +16,9 @@ public class Player implements pb.sim.Player {
 	private long time = -1;
 	private long time_limit = -1;
 
-	// next push
-	private int second_push_id = -1; // Transfer
-	private double second_push_time;
-	private double second_push_v;
-	private boolean third_push = false;
-
-	private boolean temp_stop = false;
-
-	// number of retries
-	private int retries_per_turn = 1;
-	private int turns_per_retry = 3;
-
 	private int number_of_asteroids;
+
+	private long next_push = 0;
 
 	// print orbital information
 	public void init(Asteroid[] asteroids, long time_limit)
@@ -39,88 +29,92 @@ public class Player implements pb.sim.Player {
 		this.number_of_asteroids = asteroids.length;
 	}
 
+
+	private long checkCollision(Asteroid a1, Asteroid a2, long max_time) {
+		// avoid allocating a new Point object for every position
+		Point p1 = new Point(), p2 = new Point();
+		// search for collision with other asteroids
+		double r = a1.radius() + a2.radius();
+		for (long ft = 0 ; ft != max_time ; ++ft) {
+			long t = time + ft;
+			if (t >= time_limit) break;
+			a1.orbit.positionAt(t - a1.epoch, p1);
+			a2.orbit.positionAt(t - a2.epoch, p2);
+			// if collision, return push to the simulator
+			if (Point.distance(p1, p2) < r) {
+				return t;
+			}
+		}
+		return -1; // No collision within deadline
+	}
+
 	// try to push asteroid
 	public void play(Asteroid[] asteroids,
 	                 double[] energy, double[] direction)
 	{
 		time++;
 
-		if (temp_stop) return;
-
-		if (third_push) {
-
-			System.out.println("Third push");
-			Asteroid a = asteroids[second_push_id];
-			Point v = a.orbit.velocityAt(time);
-
-			double dv = 2 * Math.sqrt(v.x * v.x + v.y * v.y);
-			energy[second_push_id] = a.mass * Math.pow(dv, 2) / 2;
-			direction[second_push_id] = Math.atan2(v.y, v.x) + Math.PI;
-
-			third_push = false;
-			second_push_id = -1;
-
-			temp_stop = true;
-
-			return;
-		}
-
-		if (second_push_id > -1) {
-
-			if (second_push_time > time) return;
-
-			System.out.println(time);
-
-			Asteroid a = asteroids[second_push_id];
-			Point v = a.orbit.velocityAt(time);
-
-			energy[second_push_id] = a.mass * Math.pow(second_push_v, 2) / 2;
-			direction[second_push_id] = Math.atan2(v.y, v.x);
-
-			if (second_push_v < 0) direction[second_push_id] += Math.PI;
-
-			// end push
-			third_push = true;
-			return;
-
-		}
-
-		for (int retry = 1 ; retry <= retries_per_turn ; ++retry) {
-			// pick Asteroid 0
+		if (asteroids.length < number_of_asteroids) {
+			System.out.println("A collision just occurred at time " + time);
+			// Check for non-circular orbit
 			for (int i = 0; i < asteroids.length; i++) {
+				if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > 10e-6) {
+					// Correct for non-circular orbit
+					Point p = asteroids[i].orbit.positionAt(time - asteroids[i].epoch);
 
-				Point v1 = asteroids[i].orbit.velocityAt(time);
+					Point v1 = new Orbit(p).velocityAt(0); // Velocity for round
 
-				int j = 1;
-				/*
-				for (j = i; j < asteroids.length; j++) {
-					// pick a possible Asteroid to push to
-					if (Math.abs(asteroids[j].mass - asteroids[i].mass) > asteroids[i].mass * 0.1) {
-						// Mass differ by enough
-						break;
-					}
+					Point v = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+					Point dv = new Point(v1.x - v.x, v1.y - v.y);
+
+					System.out.println("v1: " + v1);
+					System.out.println("v: " + v);
+					System.out.println("dv: " + dv);
+
+					energy[i] = asteroids[i].mass * Math.pow(dv.magnitude(), 2) / 2;
+					direction[i] = dv.direction();
 				}
-				if (j == 0) continue;
-				*/
-
-				double r1 = asteroids[i].orbit.a; // Assume circular
-				double r2 = asteroids[j].orbit.a; // Assume circular
-
-				// Transfer i to j orbit
-				double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
-
-				energy[i] = asteroids[i].mass * Math.pow(dv, 2) / 2;
-				direction[i] = Math.atan2(v1.y, v1.x);
-				if (dv < 0) direction[i] = direction[i] + Math.PI;
-
-				second_push_v = Math.sqrt(pb.sim.Orbit.GM / r2) * (1 - Math.sqrt(2 * r1 / (r1 + r2)));
-				second_push_id = i;
-				second_push_time = time + Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
-
-				System.out.println("Target time: " + second_push_time);
-				return;
 			}
 
+			next_push = 0; // Void
+			number_of_asteroids = asteroids.length;
+			return;
 		}
+
+		if (time <= next_push) return;
+
+		// Get largest
+		int largest = 0;
+		for (int i = 1; i < asteroids.length; i++) {
+			if (asteroids[i].radius() > asteroids[largest].radius()) {
+				largest = i;
+			}
+		}
+
+		for (int i = 0; i < asteroids.length; i++) {
+			// Try to push into largest
+			Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+
+			// pick Asteroid 1
+			double r1 = asteroids[i].orbit.a; // Assume circular
+			double r2 = asteroids[largest].orbit.a; // Assume circular
+
+			// Transfer i to j orbit
+			double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+			double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
+			double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
+			double d = v1.direction();
+			if (dv < 0) d += Math.PI;
+
+			Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
+			long nt = checkCollision(a1, asteroids[largest], (long)Math.ceil(t));
+			if (nt != -1) {
+				energy[i] = e; direction[i] = d;
+				next_push = nt;
+				return;
+			}
+		}
+
+
 	}
 }
