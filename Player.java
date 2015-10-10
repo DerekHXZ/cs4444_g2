@@ -29,7 +29,6 @@ public class Player implements pb.sim.Player {
 		this.number_of_asteroids = asteroids.length;
 	}
 
-
 	private long checkCollision(Asteroid a1, Asteroid a2, long max_time) {
 		// avoid allocating a new Point object for every position
 		Point p1 = new Point(), p2 = new Point();
@@ -83,13 +82,8 @@ public class Player implements pb.sim.Player {
 
 		if (time <= next_push) return;
 
-		// Get largest
-		int largest = 0;
-		for (int i = 1; i < asteroids.length; i++) {
-			if (asteroids[i].radius() > asteroids[largest].radius()) {
-				largest = i;
-			}
-		}
+		// Get largest radius asteroid
+		int largestRadius = Utils.largestRadius(asteroids);
 
 		for (int i = 0; i < asteroids.length; i++) {
 			// Try to push into largest
@@ -97,7 +91,7 @@ public class Player implements pb.sim.Player {
 
 			// pick Asteroid 1
 			double r1 = asteroids[i].orbit.a; // Assume circular
-			double r2 = asteroids[largest].orbit.a; // Assume circular
+			double r2 = asteroids[largestRadius].orbit.a; // Assume circular
 
 			// Transfer i to j orbit
 			double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
@@ -107,7 +101,7 @@ public class Player implements pb.sim.Player {
 			if (dv < 0) d += Math.PI;
 
 			Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
-			long nt = checkCollision(a1, asteroids[largest], (long)Math.ceil(t));
+			long nt = checkCollision(a1, asteroids[largestRadius], (long) Math.ceil(t));
 			if (nt != -1) {
 				energy[i] = e; direction[i] = d;
 				next_push = nt;
