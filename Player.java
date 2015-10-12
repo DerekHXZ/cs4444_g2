@@ -5,6 +5,8 @@ import pb.sim.Orbit;
 import pb.sim.Asteroid;
 import pb.sim.InvalidOrbitException;
 
+import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Random;
 
 public class Player implements pb.sim.Player {
@@ -27,24 +29,6 @@ public class Player implements pb.sim.Player {
 			throw new IllegalStateException("Time quantum is not a day");
 		this.time_limit = time_limit;
 		this.number_of_asteroids = asteroids.length;
-	}
-
-	private long checkCollision(Asteroid a1, Asteroid a2, long max_time) {
-		// avoid allocating a new Point object for every position
-		Point p1 = new Point(), p2 = new Point();
-		// search for collision with other asteroids
-		double r = a1.radius() + a2.radius();
-		for (long ft = 0 ; ft != max_time ; ++ft) {
-			long t = time + ft;
-			if (t >= time_limit) break;
-			a1.orbit.positionAt(t - a1.epoch, p1);
-			a2.orbit.positionAt(t - a2.epoch, p2);
-			// if collision, return push to the simulator
-			if (Point.distance(p1, p2) < r) {
-				return t;
-			}
-		}
-		return -1; // No collision within deadline
 	}
 
 	// try to push asteroid
@@ -101,12 +85,20 @@ public class Player implements pb.sim.Player {
 			if (dv < 0) d += Math.PI;
 
 			Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
+
+			Hashtable<Long, ArrayList<CollisionChecker.CollisionPair>> collisions =
+					CollisionChecker.checkCollision(asteroids, (long) Math.ceil(t), time, time_limit);
+
+			/*
+			Old code:
 			long nt = checkCollision(a1, asteroids[largestRadius], (long) Math.ceil(t));
+
 			if (nt != -1) {
 				energy[i] = e; direction[i] = d;
 				next_push = nt;
 				return;
 			}
+			*/
 		}
 
 
