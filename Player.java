@@ -66,41 +66,98 @@ public class Player implements pb.sim.Player {
 
 		if (time <= next_push) return;
 
-		// Get largest radius asteroid
-		int largestRadius = Utils.largestRadius(asteroids);
+        // Get ply results
+        PlyResult result = simluatePly(asteroids, 2, 0);
 
-		for (int i = 0; i < asteroids.length; i++) {
-			// Try to push into largest
-			Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+        int i = result.asteroid1;
+        int j = result.asteroid2;
+        long time_of_collision = result.time_of_collision;
 
-			// pick Asteroid 1
-			double r1 = asteroids[i].orbit.a; // Assume circular
-			double r2 = asteroids[largestRadius].orbit.a; // Assume circular
+        // Try to push i into j
+        Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
 
-			// Transfer i to j orbit
-			double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
-			double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
-			double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
-			double d = v1.direction();
-			if (dv < 0) d += Math.PI;
+        // pick Asteroid 1
+        double r1 = asteroids[i].orbit.a; // Assume circular
+        double r2 = asteroids[j].orbit.a; // Assume circular
 
-			Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
+        // Transfer i to j orbit
+        double push_velocity = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+        double new_energy = asteroids[i].mass * Math.pow(push_velocity, 2) / 2;
+        double new_direction = v1.direction();
 
-			Hashtable<Long, ArrayList<CollisionChecker.CollisionPair>> collisions =
-					CollisionChecker.checkCollision(asteroids, (long) Math.ceil(t), time, time_limit);
+        if (push_velocity < 0) new_direction += Math.PI;
 
-			/*
-			Old code:
-			long nt = checkCollision(a1, asteroids[largestRadius], (long) Math.ceil(t));
-
-			if (nt != -1) {
-				energy[i] = e; direction[i] = d;
-				next_push = nt;
-				return;
-			}
-			*/
-		}
-
-
+        if (time_of_collision != -1) {
+            energy[i] = new_energy;
+            direction[i] = new_direction;
+            next_push = time_of_collision;
+            return;
+        }
 	}
+
+    private class PlyResult {
+        double energy;
+        int asteroid1, asteroid2;
+        long time_of_collision;
+
+        public PlyResult(double energy, int asteroid1, int asteroid2, long time_of_collision) {
+            this.energy = energy;
+            this.asteroid1 = asteroid1;
+            this.asteroid2 = asteroid2;
+            this.time_of_collision = time_of_collision;
+        }
+    }
+
+    public PlyResult simluatePly(Asteroid[] asteroids, int plies_left, double energy_used_so_far) {
+        if (plies_left <= 0) {
+            return new PlyResult(energy_used_so_far, -1, -1, -1);
+        }
+
+        int n = asteroids.length;
+
+        // Store energies of all possible look aheads
+        double[][] ply_energies = new double[n][n];
+        double lowest_energy = Long.MAX_VALUE;
+        int asteroid1 = -1, asteroid2 = -1;
+        long time_of_lowest_energy_collision = -1;
+
+        for (int i = 0; i < n; i++) {
+            for (int j = i+1; j < n; j++) {
+                // Try to push i into j
+                Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+
+                // pick Asteroid 1
+                double r1 = asteroids[i].orbit.a; // Assume circular
+                double r2 = asteroids[j].orbit.a; // Assume circular
+
+                // Transfer i to j orbit
+                double push_velocity = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+                double expected_collision_time = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
+                double energy = asteroids[i].mass * Math.pow(push_velocity, 2) / 2;
+                double direction = v1.direction();
+                if (push_velocity < 0) direction += Math.PI;
+
+                Asteroid asteroid_after_push = Asteroid.push(asteroids[i], time, energy, direction);
+
+                long time_of_collision = CollisionChecker.checkCollision(asteroid_after_push, asteroids[j],
+                        (long) Math.ceil(expected_collision_time + 10), time, time_limit); // TODO: Why +10?
+
+                if (time_of_collision == -1) {
+                    ply_energies[i][j] = Long.MAX_VALUE;
+                } else {
+                    ply_energies[i][j] = simluatePly(asteroids, plies_left - 1, energy_used_so_far + energy).energy;
+                }
+
+                // Set lowest energy collision option so far
+                if (ply_energies[i][j] < lowest_energy) {
+                    lowest_energy = ply_energies[i][j];
+                    asteroid1 = i;
+                    asteroid2 = j;
+                    time_of_lowest_energy_collision = time_of_collision;
+                }
+            }
+        }
+
+        return new PlyResult(lowest_energy, asteroid1, asteroid2, time_of_lowest_energy_collision);
+    }
 }

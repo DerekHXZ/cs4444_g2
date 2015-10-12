@@ -11,7 +11,25 @@ public class CollisionChecker {
         public int asteroid1_index, asteroid2_index;
     }
 
-    public static Hashtable<Long, ArrayList<CollisionPair>> checkCollision(
+    public static long checkCollision(Asteroid a1, Asteroid a2, long max_time, long real_time, long time_limit) {
+        // avoid allocating a new Point object for every position
+        Point p1 = new Point(), p2 = new Point();
+        // search for collision with other asteroids
+        double r = a1.radius() + a2.radius();
+        for (long ft = 0 ; ft != max_time ; ++ft) {
+            long t = real_time + ft;
+            if (t >= time_limit) break;
+            a1.orbit.positionAt(t - a1.epoch, p1);
+            a2.orbit.positionAt(t - a2.epoch, p2);
+            // if collision, return push to the simulator
+            if (Point.distance(p1, p2) < r) {
+                return t;
+            }
+        }
+        return -1; // No collision within deadline
+    }
+
+    public static Hashtable<Long, ArrayList<CollisionPair>> checkAllCollisions(
             Asteroid[] asteroids, long max_time, long real_time, long time_limit) {
         // Avoid allocating a new Point object for every position
         int n = asteroids.length;
