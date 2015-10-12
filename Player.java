@@ -67,38 +67,72 @@ public class Player implements pb.sim.Player {
 		if (time <= next_push) return;
 
 		// Get largest radius asteroid
-		int largestRadius = Utils.largestRadius(asteroids);
+		int largestMass = Utils.largestMass(asteroids);
 
 		for (int i = 0; i < asteroids.length; i++) {
+			if (i == largestMass)
+				continue;
 			// Try to push into largest
 			Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
 
 			// pick Asteroid 1
 			double r1 = asteroids[i].orbit.a; // Assume circular
-			double r2 = asteroids[largestRadius].orbit.a; // Assume circular
+			double r2 = asteroids[largestMass].orbit.a; // Assume circular
 
 			// Transfer i to j orbit
 			double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
 			double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
 			double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
 			double d = v1.direction();
-			if (dv < 0) d += Math.PI;
+			if (dv < 0) 
+				d += Math.PI;
 
 			Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
 
+			/*
 			Hashtable<Long, ArrayList<CollisionChecker.CollisionPair>> collisions =
 					CollisionChecker.checkCollision(asteroids, (long) Math.ceil(t), time, time_limit);
+			*/
 
-			/*
-			Old code:
-			long nt = checkCollision(a1, asteroids[largestRadius], (long) Math.ceil(t));
-
+			long nt = CollisionChecker.checkCollision(a1, asteroids[largestMass], (long) Math.ceil(t), time, time_limit);
 			if (nt != -1) {
-				energy[i] = e; direction[i] = d;
+				energy[i] = e; 
+				direction[i] = d;
 				next_push = nt;
 				return;
 			}
-			*/
+		}
+
+		for (int i = 0; i < asteroids.length; i++) {
+			if (i == largestMass)
+				continue;
+			for (int j = 0; j < asteroids.length; j++) {
+				if (j == largestMass)
+					continue;
+				// Try to push into largest
+				Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+
+				// pick Asteroid 1
+				double r1 = asteroids[i].orbit.a; // Assume circular
+				double r2 = asteroids[j].orbit.a; // Assume circular
+
+				// Transfer i to j orbit
+				double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+				double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
+				double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
+				double d = v1.direction();
+				if (dv < 0) 
+					d += Math.PI;
+
+				Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
+				long nt = CollisionChecker.checkCollision(a1, asteroids[j], (long) Math.ceil(t), time, time_limit);
+				if (nt != -1) {
+					energy[i] = e; 
+					direction[i] = d;
+					next_push = nt;
+					return;
+				}
+			}
 		}
 
 

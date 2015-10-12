@@ -15,4 +15,14 @@ public class Utils {
         }
         return largest;
     }
+
+    public static int largestMass(Asteroid[] asteroids) {
+        int largest = 0;
+        for (int i = 1; i < asteroids.length; i++) {
+            if (asteroids[i].mass > asteroids[largest].mass) {
+                largest = i;
+            }
+        }
+        return largest;
+    }
 }
