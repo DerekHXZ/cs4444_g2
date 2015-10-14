@@ -45,20 +45,20 @@ public class Player implements pb.sim.Player {
 			// Check for non-circular orbit
 			for (int i = 0; i < asteroids.length; i++) {
 				if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > 10e-6) {
-					// Correct for non-circular orbit
-					Point p = asteroids[i].orbit.positionAt(time - asteroids[i].epoch);
+					// // Correct for non-circular orbit
+					// Point p = asteroids[i].orbit.positionAt(time - asteroids[i].epoch);
 
-					Point v1 = new Orbit(p).velocityAt(0); // Velocity for round
+					// Point v1 = new Orbit(p).velocityAt(0); // Velocity for round
 
-					Point v = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
-					Point dv = new Point(v1.x - v.x, v1.y - v.y);
+					// Point v = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+					// Point dv = new Point(v1.x - v.x, v1.y - v.y);
 
-					System.out.println("v1: " + v1);
-					System.out.println("v: " + v);
-					System.out.println("dv: " + dv);
-
-					energy[i] = asteroids[i].mass * Math.pow(dv.magnitude(), 2) / 2;
-					direction[i] = dv.direction();
+					// System.out.println("v1: " + v1);
+					// System.out.println("v: " + v);
+					// System.out.println("dv: " + dv);
+					double[] push = Hohmann.genCorrection(asteroids[i], time);
+					energy[i] = push[0];
+					direction[i] = push[1];
 				}
 			}
 
@@ -89,32 +89,33 @@ public class Player implements pb.sim.Player {
 		for (int i = 0; i < asteroids.length; i++) {
 			if (i == largestMass)
 				continue;
-			// Try to push into largest
-			Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+			// // Try to push into largest
+			// Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
 
-			// pick Asteroid 1
-			double r1 = asteroids[i].orbit.a; // Assume circular
-			double r2 = asteroids[largestMass].orbit.a; // Assume circular
+			// // pick Asteroid 1
+			// double r1 = asteroids[i].orbit.a; // Assume circular
+			// double r2 = asteroids[largestMass].orbit.a; // Assume circular
 
-			// Transfer i to j orbit
-			double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
-			double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
-			double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
-			double d = v1.direction();
-			if (dv < 0) 
-				d += Math.PI;
+			// // Transfer i to j orbit
+			// double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+			// double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
+			// double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
+			// double d = v1.direction();
+			// if (dv < 0) 
+			// 	d += Math.PI;
 
-			Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
+			// /*
+			// Hashtable<Long, ArrayList<CollisionChecker.CollisionPair>> collisions =
+			// 		CollisionChecker.checkCollision(asteroids, (long) Math.ceil(t), time, time_limit);
+			// */
 
-			/*
-			Hashtable<Long, ArrayList<CollisionChecker.CollisionPair>> collisions =
-					CollisionChecker.checkCollision(asteroids, (long) Math.ceil(t), time, time_limit);
-			*/
+			double[] push = Hohmann.genPush(asteroids[i], asteroids[largestMass], time);
+			Asteroid a1 = Asteroid.push(asteroids[i], time, push[0], push[1]);
 
-			long nt = CollisionChecker.checkCollision(a1, asteroids[largestMass], (long) Math.ceil(t), time, time_limit);
+			long nt = CollisionChecker.checkCollision(a1, asteroids[largestMass], (long) Math.ceil(push[2]), time, time_limit);
 			if (nt != -1) {
-				energy[i] = e; 
-				direction[i] = d;
+				energy[i] = push[0]; 
+				direction[i] = push[1];
 				next_push = nt;
 				return;
 			}
@@ -126,26 +127,30 @@ public class Player implements pb.sim.Player {
 			for (int j = 0; j < asteroids.length; j++) {
 				if (j == largestMass)
 					continue;
-				// Try to push into largest
-				Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
+				// // Try to push into largest
+				// Point v1 = asteroids[i].orbit.velocityAt(time - asteroids[i].epoch);
 
-				// pick Asteroid 1
-				double r1 = asteroids[i].orbit.a; // Assume circular
-				double r2 = asteroids[j].orbit.a; // Assume circular
+				// // pick Asteroid 1
+				// double r1 = asteroids[i].orbit.a; // Assume circular
+				// double r2 = asteroids[j].orbit.a; // Assume circular
 
-				// Transfer i to j orbit
-				double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
-				double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
-				double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
-				double d = v1.direction();
-				if (dv < 0) 
-					d += Math.PI;
+				// // Transfer i to j orbit
+				// double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+				// double t = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt();
+				// double e = asteroids[i].mass * Math.pow(dv, 2) / 2;
+				// double d = v1.direction();
+				// if (dv < 0) 
+				// 	d += Math.PI;
 
-				Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
-				long nt = CollisionChecker.checkCollision(a1, asteroids[j], (long) Math.ceil(t), time, time_limit);
+				// Asteroid a1 = Asteroid.push(asteroids[i], time, e, d);
+
+				double[] push = Hohmann.genPush(asteroids[i], asteroids[j], time);
+				Asteroid a1 = Asteroid.push(asteroids[i], time, push[0], push[1]);
+
+				long nt = CollisionChecker.checkCollision(a1, asteroids[j], (long) Math.ceil(push[2]), time, time_limit);
 				if (nt != -1) {
-					energy[i] = e; 
-					direction[i] = d;
+					energy[i] = push[0]; 
+					direction[i] = push[1];
 					next_push = nt;
 					return;
 				}
