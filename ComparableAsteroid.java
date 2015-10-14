@@ -5,6 +5,12 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
     public double radius;
     public double mass;
 
+    public ComparableAsteroid(int index, double radius, double mass) {
+        this.index = index;
+        this.radius = radius;
+        this.mass = mass;
+    }
+
     private double getScore() {
         return radius/mass;
     }

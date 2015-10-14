@@ -1,11 +1,13 @@
 package pb.g2;
 
+import pb.g7.asteroid_index;
 import pb.sim.Point;
 import pb.sim.Orbit;
 import pb.sim.Asteroid;
 import pb.sim.InvalidOrbitException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Random;
 
@@ -36,6 +38,7 @@ public class Player implements pb.sim.Player {
 	                 double[] energy, double[] direction)
 	{
 		time++;
+		int n = asteroids.length;
 
 		if (asteroids.length < number_of_asteroids) {
 			System.out.println("A collision just occurred at time " + time);
@@ -68,6 +71,20 @@ public class Player implements pb.sim.Player {
 
 		// Get largest radius asteroid
 		int largestMass = Utils.largestMass(asteroids);
+
+		// Pick asteroid to push to
+
+		// Sort asteroids in order of how attractive they are to become nucleus
+		ArrayList<ComparableAsteroid> sorted_asteroids = new ArrayList<ComparableAsteroid>();
+		Point asteroid_position = new Point();
+		Point sun = new Point(0, 0);
+		for (int i = 0; i<n; i++) {
+			asteroids[i].orbit.positionAt(time - asteroids[i].epoch, asteroid_position);
+			sorted_asteroids.add(new ComparableAsteroid(i, Point.distance(sun, asteroid_position), asteroids[i].mass));
+		}
+		Collections.sort(sorted_asteroids);
+
+
 
 		for (int i = 0; i < asteroids.length; i++) {
 			if (i == largestMass)
