@@ -41,7 +41,6 @@ public class Player implements pb.sim.Player {
 			pushedThisPeriod = false;
 		}
 
-
         int n = asteroids.length;
 
         if (asteroids.length < number_of_asteroids) {
@@ -50,7 +49,7 @@ public class Player implements pb.sim.Player {
             for (int i = 0; i < asteroids.length; i++) {
                 if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > 10e-6) {
                     // // Correct for non-circular orbit
-                    Push push = Hohmann.generateCorrection(asteroids[i], time);
+                    Push push = Hohmann.generateCorrection(asteroids[i], i, time);
                     energy[i] = push.energy;
                     direction[i] = push.direction;
                 }
@@ -91,7 +90,7 @@ public class Player implements pb.sim.Player {
                 continue;
             }
 
-            Push push = Hohmann.generatePush(curr_asteroid, nucleus, time);
+            Push push = Hohmann.generatePush(curr_asteroid, curr_asteroid_index, nucleus, time);
             Asteroid pushed_asteroid = Asteroid.push(min_push.asteroid, time, min_push.energy, min_push.direction);
             time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, nucleus, min_push.expected_collision_time,
                     time, time_limit);
@@ -130,7 +129,7 @@ public class Player implements pb.sim.Player {
                     continue;
                 }
 
-                Push push = Hohmann.generatePush(asteroids[i], asteroids[j], time);
+                Push push = Hohmann.generatePush(asteroids[i], i, asteroids[j], time);
                 Asteroid pushed_asteroid = Asteroid.push(asteroids[i], time, push.energy, push.direction);
 
                 long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[j], push.expected_collision_time,

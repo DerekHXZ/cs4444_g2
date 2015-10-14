@@ -10,7 +10,7 @@ public class Hohmann {
 	 * Generate a Hohmann Transfer push of asteroid a1 into a2.
 	 * Assumes both are currently in circular orbits.
 	 */
-	public static Push generatePush(Asteroid a1, Asteroid a2, long time) {
+	public static Push generatePush(Asteroid a1, int asteroid_to_push_index, Asteroid a2, long time) {
 		double r1 = a1.orbit.a;
 		double r2 = a2.orbit.a;
 		double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
@@ -19,14 +19,14 @@ public class Hohmann {
 		double direction = a1.orbit.velocityAt(time - a1.epoch).direction();
 		if (dv < 0)
 			direction += Math.PI;
-		return new Push(a1, energy, direction, expected_collision_time);
+		return new Push(a1, asteroid_to_push_index, energy, direction, expected_collision_time);
 	}
 
 	/**
 	 * Generate a Hohmann Transfer push to correct an elliptical orbit
 	 * to a circular one with radius = semi-major axis length of ellipse.
 	 */
-	public static Push generateCorrection(Asteroid asteroid, long time) {
+	public static Push generateCorrection(Asteroid asteroid, int asteroid_to_push_index, long time) {
 		Point p = asteroid.orbit.positionAt(time - asteroid.epoch);
 
 		Point v1 = new Orbit(p).velocityAt(0); // Velocity for round
@@ -36,7 +36,7 @@ public class Hohmann {
 
 		double energy = asteroid.mass * Math.pow(dv.magnitude(), 2) / 2;
 		double direction = dv.direction();
-		return new Push(asteroid, energy, direction, -1);
+		return new Push(asteroid, asteroid_to_push_index, energy, direction, -1);
 	}
 
 	/**
