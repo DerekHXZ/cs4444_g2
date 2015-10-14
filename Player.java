@@ -76,10 +76,8 @@ public class Player implements pb.sim.Player {
         int nucleus_index = sorted_asteroids.get(n - 1).index;
         Asteroid nucleus = asteroids[nucleus_index];
 
-        System.out.println("nucleus: " + nucleus_index);
-
         // Of all remaining asteroids, find the one with lowest energy push
-        Push min_push = new Push(null, 0, Long.MAX_VALUE, 0, 0);
+        Push min_push = new Push(null, 0, Double.MAX_VALUE, 0, 0);
         long min_push_time_of_collision = -1;
         long time_of_collision = -1;
         for (int i = n - 2; i >= 0; i--) {
@@ -95,11 +93,17 @@ public class Player implements pb.sim.Player {
             Asteroid pushed_asteroid = Asteroid.push(push.asteroid, time, push.energy, push.direction);
             time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, nucleus, push.expected_collision_time,
                     time, time_limit);
+            System.out.println("energy: " + push.energy);
+            System.out.println("min energy: " + min_push.energy);
+            System.out.println("time of collision: " + push.expected_collision_time);
             if (push.energy < min_push.energy) {
+                System.out.println("Set a push");
                 min_push = push;
                 min_push_time_of_collision = time_of_collision;
             }
         }
+
+        System.exit(0);
 
         if (min_push_time_of_collision != -1) {
             System.out.println("Found a push");
@@ -139,7 +143,7 @@ public class Player implements pb.sim.Player {
                 long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[j], push.expected_collision_time,
                         time, time_limit);
                 if (time_of_collision != -1) {
-                    System.out.println("Founde a collision in give up");
+                    System.out.println("Found a collision in give up");
                     energy[i] = push.energy;
                     direction[i] = push.direction;
                     next_push = time_of_collision;

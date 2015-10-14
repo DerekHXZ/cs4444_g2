@@ -19,6 +19,7 @@ public class Hohmann {
 		double direction = a1.orbit.velocityAt(time - a1.epoch).direction();
 		if (dv < 0)
 			direction += Math.PI;
+        //System.out.println("expected collision time: " + expected_collision_time);
 		return new Push(a1, asteroid_to_push_index, energy, direction, expected_collision_time);
 	}
 
