@@ -37,5 +37,38 @@ public class Hohmann {
 	}
 
 
+	public double timeToPush(long time, Asteroid a, Asteroid b) {
+		// Return the time after current when a can be pushed to b with Hohmann Transfer
+		double ra = a.orbit.a;
+		double rb = b.orbit.a;
+
+		double angle = Math.PI * (1 - Math.pow(1 + ra / rb, 1.5) / Math.sqrt(8));
+
+		double aa = a.orbit.positionAt(time - a.epoch).direction();
+		double ba = b.orbit.positionAt(time - b.epoch).direction();
+
+		double angle_now = ba - aa;
+		if (angle_now < 0) angle_now += Math.PI * 2;
+
+		double alphaa = a.orbit.velocityAt(time - a.epoch).magnitude() / ra;
+		double alphab = a.orbit.velocityAt(time - b.epoch).magnitude() / rb;
+
+		if (angle_now >= angle) {
+			if (alphaa >= alphab) {
+				return (angle_now - angle) / (alphaa - alphab);
+			} else {
+				return (Math.PI * 2 - angle_now + angle) / (alphab - alphaa);
+			}
+		} else {
+			if (alphab >= alphaa) {
+				return (angle - angle_now) / (alphaa - alphab);
+			} else {
+				return (Math.PI * 2 - angle + angle_now) / (alphab - alphaa);
+			}
+		}
+
+	}
+
+
 
 }
