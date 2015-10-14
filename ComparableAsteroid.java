@@ -3,16 +3,18 @@ package pb.g2;
 public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
     public int index;
     public double radius;
+    public double mass;
 
-    public ComparableAsteroid(int index, double radius) {
-        this.index = index;
-        this.radius = radius;
+    private double getScore() {
+        return radius/mass;
     }
 
     public int compareTo(ComparableAsteroid other) {
-        if (radius > other.radius) {
+        double thisScore = this.getScore();
+        double otherScore = other.getScore();
+        if (thisScore > otherScore) {
             return 1;
-        } else if (radius < other.radius) {
+        } else if (thisScore < otherScore) {
             return -1;
         } else {
             return 0;
