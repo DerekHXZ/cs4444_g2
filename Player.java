@@ -35,7 +35,6 @@ public class Player implements pb.sim.Player {
 	                 double[] energy, double[] direction) {
         time++;
 
-
         if (time % period == 0) {
 			pushedThisPeriod = false;
 		}
@@ -77,6 +76,8 @@ public class Player implements pb.sim.Player {
         int nucleus_index = sorted_asteroids.get(n - 1).index;
         Asteroid nucleus = asteroids[nucleus_index];
 
+        System.out.println("nucleus: " + nucleus_index);
+
         // Of all remaining asteroids, find the one with lowest energy push
         Push min_push = new Push(null, 0, Long.MAX_VALUE, 0, 0);
         long min_push_time_of_collision = -1;
@@ -101,6 +102,7 @@ public class Player implements pb.sim.Player {
         }
 
         if (min_push_time_of_collision != -1) {
+            System.out.println("Found a push");
             energy[min_push.index] = min_push.energy;
             direction[min_push.index] = min_push.direction;
             next_push = time_of_collision;
@@ -109,6 +111,7 @@ public class Player implements pb.sim.Player {
         }
 
         if (!pushedThisPeriod) {
+            System.out.println("Give up");
 	        // ¯\_(ツ)_/¯
 	        giveUpAndTryEverything(nucleus_index, asteroids, energy, direction);
 	    }
@@ -136,6 +139,7 @@ public class Player implements pb.sim.Player {
                 long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[j], push.expected_collision_time,
                         time, time_limit);
                 if (time_of_collision != -1) {
+                    System.out.println("Founde a collision in give up");
                     energy[i] = push.energy;
                     direction[i] = push.direction;
                     next_push = time_of_collision;
