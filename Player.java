@@ -6,7 +6,6 @@ import pb.sim.Asteroid;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Random;
 
 public class Player implements pb.sim.Player {
 
@@ -80,6 +79,7 @@ public class Player implements pb.sim.Player {
 
         // Of all remaining asteroids, find the one with lowest energy push
         Push min_push = new Push(null, 0, Long.MAX_VALUE, 0, 0);
+        long min_push_time_of_collision = -1;
         long time_of_collision = -1;
         for (int i = n - 2; i >= 0; i--) {
             int curr_asteroid_index = sorted_asteroids.get(i).index;
@@ -91,15 +91,16 @@ public class Player implements pb.sim.Player {
             }
 
             Push push = Hohmann.generatePush(curr_asteroid, curr_asteroid_index, nucleus, time);
-            Asteroid pushed_asteroid = Asteroid.push(min_push.asteroid, time, min_push.energy, min_push.direction);
-            time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, nucleus, min_push.expected_collision_time,
+            Asteroid pushed_asteroid = Asteroid.push(push.asteroid, time, push.energy, push.direction);
+            time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, nucleus, push.expected_collision_time,
                     time, time_limit);
             if (push.energy < min_push.energy) {
                 min_push = push;
+                min_push_time_of_collision = time_of_collision;
             }
         }
 
-        if (time_of_collision != -1) {
+        if (min_push_time_of_collision != -1) {
             energy[min_push.index] = min_push.energy;
             direction[min_push.index] = min_push.direction;
             next_push = time_of_collision;
