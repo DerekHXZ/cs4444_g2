@@ -12,7 +12,7 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
     }
 
     private double getScore() {
-        return radius/mass;
+        return radius*mass;
     }
 
     public int compareTo(ComparableAsteroid other) {
