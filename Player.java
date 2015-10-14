@@ -1,14 +1,11 @@
 package pb.g2;
 
-import pb.g7.asteroid_index;
 import pb.sim.Point;
 import pb.sim.Orbit;
 import pb.sim.Asteroid;
-import pb.sim.InvalidOrbitException;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.Random;
 
 public class Player implements pb.sim.Player {
