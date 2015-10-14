@@ -21,6 +21,9 @@ public class Player implements pb.sim.Player {
 
 	private long next_push = 0;
 
+	private long period;
+	private boolean pushedThisPeriod = false;
+
 	// print orbital information
 	public void init(Asteroid[] asteroids, long time_limit)
 	{
@@ -28,6 +31,7 @@ public class Player implements pb.sim.Player {
 			throw new IllegalStateException("Time quantum is not a day");
 		this.time_limit = time_limit;
 		this.number_of_asteroids = asteroids.length;
+		this.period = time_limit / this.number_of_asteroids;
 	}
 
 	// try to push asteroid
@@ -35,6 +39,10 @@ public class Player implements pb.sim.Player {
 	                 double[] energy, double[] direction)
 	{
 		time++;
+		if (time % period == 0) {
+			pushedThisPeriod = false;
+		}
+
 		int n = asteroids.length;
 
 		if (asteroids.length < number_of_asteroids) {
@@ -57,9 +65,7 @@ public class Player implements pb.sim.Player {
 		if (time <= next_push) return;
 
 		// Get largest radius asteroid
-		int largestMass = Utils.largestMass(asteroids);
-
-		// Pick asteroid to push to
+		int largestRadius = Utils.largestOrbitRadius(asteroids);
 
 		// Sort asteroids in order of how attractive they are to become nucleus
 		ArrayList<ComparableAsteroid> sorted_asteroids = new ArrayList<ComparableAsteroid>();
@@ -71,33 +77,36 @@ public class Player implements pb.sim.Player {
 		}
 		Collections.sort(sorted_asteroids);
 
-
-
-		for (int i = 0; i < asteroids.length; i++) {
-			if (i == largestMass)
+		for (ComparableAsteroid ca : sorted_asteroids) {
+			int i = ca.index;
+			if (i == largestRadius)
 				continue;
 			// /*
 			// Hashtable<Long, ArrayList<CollisionChecker.CollisionPair>> collisions =
 			// 		CollisionChecker.checkCollision(asteroids, (long) Math.ceil(t), time, time_limit);
 			// */
 
-			Push push = Hohmann.generatePush(asteroids[i], asteroids[largestMass], time);
+			Push push = Hohmann.generatePush(asteroids[i], asteroids[largestRadius], time);
 			Asteroid a1 = Asteroid.push(asteroids[i], time, push.energy, push.direction);
 
-			long nt = CollisionChecker.checkCollision(a1, asteroids[largestMass], push.expected_collision_time, time, time_limit);
+			long nt = CollisionChecker.checkCollision(a1, asteroids[largestRadius], push.expected_collision_time, time, time_limit);
 			if (nt != -1) {
 				energy[i] = push.energy;
 				direction[i] = push.direction;
 				next_push = nt;
+				pushedThisPeriod = true;
 				return;
 			}
 		}
 
+		if (pushedThisPeriod)
+			return;
+
 		for (int i = 0; i < asteroids.length; i++) {
-			if (i == largestMass)
+			if (i == largestRadius)
 				continue;
 			for (int j = 0; j < asteroids.length; j++) {
-				if (j == largestMass)
+				if (j == largestRadius)
 					continue;
 
 				Push push = Hohmann.generatePush(asteroids[i], asteroids[j], time);
@@ -108,11 +117,10 @@ public class Player implements pb.sim.Player {
 					energy[i] = push.energy;
 					direction[i] = push.direction;
 					next_push = nt;
+					pushedThisPeriod = true;
 					return;
 				}
 			}
 		}
-
-
 	}
 }
