@@ -139,6 +139,7 @@ public class Player implements pb.sim.Player {
                     energy[i] = push.energy;
                     direction[i] = push.direction;
                     next_push = time_of_collision;
+                    pushedThisPeriod = true;
                     return;
                 }
             }
