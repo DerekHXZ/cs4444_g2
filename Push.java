@@ -1,13 +1,17 @@
 package pb.g2;
 
+import pb.sim.Asteroid;
+
 public class Push {
-    long id;
+    Asteroid asteroid;
+    int index;
     double energy;
     double direction;
     long expected_collision_time;
 
-    Push(long id, double energy, double direction, long expected_collision_time) {
-        this.id = id;
+    Push(Asteroid asteroid, int index, double energy, double direction, long expected_collision_time) {
+        this.asteroid = asteroid;
+        this.index = index;
         this.energy = energy;
         this.direction = direction;
         this.expected_collision_time = expected_collision_time;
