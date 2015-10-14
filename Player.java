@@ -85,7 +85,7 @@ public class Player implements pb.sim.Player {
             Asteroid curr_asteroid = asteroids[curr_asteroid_index];
 
             // Ignore asteroids with elliptical orbits
-            if (Math.abs(curr_asteroid.orbit.a - curr_asteroid.orbit.b) > 10e-6) {
+            if (Math.abs(curr_asteroid.orbit.a - curr_asteroid.orbit.b) > 10e-5) {
                 continue;
             }
 
@@ -93,23 +93,19 @@ public class Player implements pb.sim.Player {
             Asteroid pushed_asteroid = Asteroid.push(push.asteroid, time, push.energy, push.direction);
             time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, nucleus, push.expected_collision_time,
                     time, time_limit);
-            System.out.println("energy: " + push.energy);
-            System.out.println("min energy: " + min_push.energy);
-            System.out.println("time of collision: " + push.expected_collision_time);
+            if (time_of_collision == -1) {
+                continue;
+            }
             if (push.energy < min_push.energy) {
-                System.out.println("Set a push");
                 min_push = push;
                 min_push_time_of_collision = time_of_collision;
             }
         }
-
-        System.exit(0);
-
         if (min_push_time_of_collision != -1) {
             System.out.println("Found a push");
             energy[min_push.index] = min_push.energy;
             direction[min_push.index] = min_push.direction;
-            next_push = time_of_collision;
+            next_push = min_push_time_of_collision;
             pushedThisPeriod = true;
             return;
         }
