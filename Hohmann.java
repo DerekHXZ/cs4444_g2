@@ -19,7 +19,7 @@ public class Hohmann {
 		double direction = a1.orbit.velocityAt(time - a1.epoch).direction();
 		if (dv < 0)
 			direction += Math.PI;
-		return new Push(a1.id, energy, direction, expected_collision_time);
+		return new Push(a1, energy, direction, expected_collision_time);
 	}
 
 	/**
@@ -36,11 +36,11 @@ public class Hohmann {
 
 		double energy = asteroid.mass * Math.pow(dv.magnitude(), 2) / 2;
 		double direction = dv.direction();
-		return new Push(asteroid.id, energy, direction, -1);
+		return new Push(asteroid, energy, direction, -1);
 	}
 
 	/**
-	 * Return the time after current when a can be pushed to b with Hohmann Transfer.
+	 * Return the time after current time when asteroid a can be pushed to b with Hohmann Transfer.
  	 */
 	public double timeToPush(long time, Asteroid a, Asteroid b) {
 		double ra = a.orbit.a;
