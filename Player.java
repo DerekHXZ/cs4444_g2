@@ -74,6 +74,7 @@ public class Player implements pb.sim.Player {
 
         // Get nucleus asteroid to which we will push all other asteroids
         int nucleus_index = sorted_asteroids.get(n - 1).index;
+        // System.out.println("Found nucleus id " + nucleus_index + ", mass " + asteroids[nucleus_index].mass);
         Asteroid nucleus = asteroids[nucleus_index];
 
         // Of all remaining asteroids, find the one with lowest energy push
@@ -102,7 +103,7 @@ public class Player implements pb.sim.Player {
             }
         }
         if (min_push_time_of_collision != -1) {
-            System.out.println("Found a push");
+            System.out.println("Found a push with id " + min_push.asteroid.id);
             energy[min_push.index] = min_push.energy;
             direction[min_push.index] = min_push.direction;
             next_push = min_push_time_of_collision;

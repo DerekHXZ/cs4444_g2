@@ -16,14 +16,6 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
     }
 
     public int compareTo(ComparableAsteroid other) {
-        double thisScore = this.getScore();
-        double otherScore = other.getScore();
-        if (thisScore > otherScore) {
-            return -1;
-        } else if (thisScore < otherScore) {
-            return 1;
-        } else {
-            return 0;
-        }
+        return Double.valueOf(this.getScore()).compareTo(other.getScore());
     }
 }
