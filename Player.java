@@ -86,7 +86,7 @@ public class Player implements pb.sim.Player {
             Asteroid curr_asteroid = asteroids[curr_asteroid_index];
 
             // Ignore asteroids with elliptical orbits
-            if (curr_asteroid.orbit.a != curr_asteroid.orbit.b) {
+            if (Math.abs(curr_asteroid.orbit.a - curr_asteroid.orbit.b) > 10e-6) {
                 continue;
             }
 
