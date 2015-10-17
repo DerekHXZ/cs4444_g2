@@ -11,13 +11,14 @@ public class CollisionChecker {
         public int asteroid1_index, asteroid2_index;
     }
 
-    public static long checkCollision(Asteroid a1, Asteroid a2, long max_time, long real_time, long time_limit) {
+    public static long checkCollision(Asteroid a1, Asteroid a2, long expected_time_of_collision, long time, long time_limit) {
         // avoid allocating a new Point object for every position
         Point p1 = new Point(), p2 = new Point();
         // search for collision with other asteroids
         double r = a1.radius() + a2.radius();
-        for (long ft = 0 ; ft != max_time ; ++ft) {
-            long t = real_time + ft;
+        final int EPSILON_TIME = 5;
+        for (long ft = -EPSILON_TIME; ft <= EPSILON_TIME; ++ft) {
+            long t = time + expected_time_of_collision + ft;
             if (time_limit != -1 && t >= time_limit) break;
             a1.orbit.positionAt(t - a1.epoch, p1);
             a2.orbit.positionAt(t - a2.epoch, p2);

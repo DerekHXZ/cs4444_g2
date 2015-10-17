@@ -43,7 +43,7 @@ public class Hohmann {
 	/**
 	 * Return the time after current time when asteroid a can be pushed to b with Hohmann Transfer.
  	 */
-	public double timeToPush(long time, Asteroid a, Asteroid b) {
+	public static double timeToPush(long time, Asteroid a, Asteroid b) {
 		double ra = a.orbit.a;
 		double rb = b.orbit.a;
 
