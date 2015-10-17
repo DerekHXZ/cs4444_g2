@@ -19,7 +19,7 @@ public class CollisionChecker {
         final int EPSILON_TIME = 720;
         for (long ft = -EPSILON_TIME; ft <= EPSILON_TIME; ++ft) {
             long t = time + expected_time_of_collision + ft;
-            if (t >= time_limit) break;
+            if (time_limit != -1 && t >= time_limit) break;
             a1.orbit.positionAt(t - a1.epoch, p1);
             a2.orbit.positionAt(t - a2.epoch, p2);
             // if collision, return push to the simulator
