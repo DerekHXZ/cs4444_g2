@@ -16,7 +16,7 @@ public class CollisionChecker {
         Point p1 = new Point(), p2 = new Point();
         // search for collision with other asteroids
         double r = a1.radius() + a2.radius();
-        final int EPSILON_TIME = 5;
+        final int EPSILON_TIME = 720;
         for (long ft = -EPSILON_TIME; ft <= EPSILON_TIME; ++ft) {
             long t = time + expected_time_of_collision + ft;
             if (t >= time_limit) break;
