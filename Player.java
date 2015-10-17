@@ -20,6 +20,8 @@ public class Player implements pb.sim.Player {
 	private long period;
 	private boolean pushedThisPeriod = false;
 
+    private static double EPSILON = 10e-6;
+
 	// print orbital information
 	public void init(Asteroid[] asteroids, long time_limit)
 	{
@@ -35,18 +37,14 @@ public class Player implements pb.sim.Player {
 	                 double[] energy, double[] direction) {
         time++;
 
-        if (time % period == 0) {
-			pushedThisPeriod = false;
-		}
-
         int n = asteroids.length;
 
         if (asteroids.length < number_of_asteroids) {
             System.out.println("A collision just occurred at time " + time);
             // Check for non-circular orbit
             for (int i = 0; i < asteroids.length; i++) {
-                if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > 10e-6) {
-                    // // Correct for non-circular orbit
+                if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > EPSILON) {
+                    // Correct for non-circular orbit
                     Push push = Hohmann.generateCorrection(asteroids[i], i, time);
                     energy[i] = push.energy;
                     direction[i] = push.direction;
@@ -55,7 +53,6 @@ public class Player implements pb.sim.Player {
 
             next_push = 0; // Void
             number_of_asteroids = asteroids.length;
-            pushedThisPeriod = true;
             return;
         }
 
