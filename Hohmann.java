@@ -58,19 +58,38 @@ public class Hohmann {
 		double alphaa = a.orbit.velocityAt(time - a.epoch).magnitude() / ra;
 		double alphab = a.orbit.velocityAt(time - b.epoch).magnitude() / rb;
 
+		double raw_time;
+
+		if (Math.abs(alphaa - alphab) < 1e-5) {
+			return -1;
+		}
+
 		if (angle_now >= angle) {
 			if (alphaa >= alphab) {
-				return (angle_now - angle) / (alphaa - alphab);
+				raw_time =  (angle_now - angle) / (alphaa - alphab);
 			} else {
-				return (Math.PI * 2 - angle_now + angle) / (alphab - alphaa);
+				raw_time =  (Math.PI * 2 - angle_now + angle) / (alphab - alphaa);
 			}
 		} else {
 			if (alphab >= alphaa) {
-				return (angle - angle_now) / (alphaa - alphab);
+				raw_time =  (angle - angle_now) / (alphaa - alphab);
 			} else {
-				return (Math.PI * 2 - angle + angle_now) / (alphab - alphaa);
+				raw_time = (Math.PI * 2 - angle + angle_now) / (alphab - alphaa);
 			}
 		}
 
+		if (raw_time == Double.NaN || raw_time > Long.MAX_VALUE) {
+			// Overflow
+			return -1;
+		}
+		// Check actual time to push
+		long wait_time = (long)(raw_time / Orbit.dt());
+		for (long push_time = time + wait_time - 2; push_time <= time + wait_time + 2; push_time++) {
+			Push p = generatePush(a, 0, b, push_time);
+			if (CollisionChecker.checkCollision(p.asteroid, b, p.expected_collision_time, push_time, -1) != -1) {
+				return push_time;
+			}
+		}
+		return -1;
 	}
 }
