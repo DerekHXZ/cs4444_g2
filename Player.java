@@ -23,6 +23,7 @@ public class Player implements pb.sim.Player {
     private static double EPSILON = 10e-6;
     private Asteroid nucleus;
     private int nucleus_index;
+    private double total_mass = 0.0;
 
 	// print orbital information
 	public void init(Asteroid[] asteroids, long time_limit)
@@ -42,6 +43,7 @@ public class Player implements pb.sim.Player {
         for (int i = 0; i < n; i++) {
             asteroids[i].orbit.positionAt(time - asteroids[i].epoch, asteroid_position);
             sorted_asteroids.add(new ComparableAsteroid(i, Point.distance(sun, asteroid_position), asteroids[i].mass));
+            total_mass += asteroids[i].mass;
         }
         Collections.sort(sorted_asteroids);
 
@@ -121,6 +123,8 @@ public class Player implements pb.sim.Player {
             // ¯\_(ツ)_/¯
             giveUpAndFinish(nucleus_index, asteroids, energy, direction);
         }
+
+        giveUpAndFinish(asteroids, energy, direction);
     }
 
 
@@ -128,31 +132,107 @@ public class Player implements pb.sim.Player {
      * Worst case: If we could not collide anything into the nucleus,
      * find the biggest masses and try to collide them
      */
-    public void giveUpAndFinish(int nucleus_index, Asteroid[] asteroids, double[] energy, double[] direction) {
+    public void giveUpAndFinish(Asteroid[] asteroids, double[] energy, double[] direction) {
         int n = asteroids.length;
-
-        for (int i = 0; i < n; i++) {
-            if (i == nucleus_index) {
-                continue;
-            }
-            for (int j = 0; j < n; j++) {
-                if (j == nucleus_index) {
-                    continue;
+        ArrayList<Integer> largest_asteroids = new ArrayList<Integer>();
+        largest_asteroids.add(nucleus_index);
+        double mass = asteroids[nucleus_index].mass;
+        while (mass / total_mass < 0.5) {
+            int largest = 0;
+            double largest_m = 0;
+            for (int i = 0; i < n; i++) {
+                if (!largest_asteroids.contains(i) && asteroids[i].mass > largest_m) {
+                    largest = i;
+                    largest_m = asteroids[i].mass;
                 }
+            }
+            largest_asteroids.add(largest);
+            mass += largest_m;
+        }
 
+        for (int a=0; a<largest_asteroids.size(); a++) {
+            int i = a;
+            if (i == nucleus_index)
+                continue;
+            Push push = Hohmann.generatePush(asteroids[i], i, asteroids[nucleus_index], time);
+            Asteroid pushed_asteroid = Asteroid.push(asteroids[i], time, push.energy, push.direction);
+            long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[nucleus_index], push.expected_collision_time,
+                        time, time_limit);
+            if (time_of_collision != -1) {
+                System.out.println("Found a collision in give up");
+                energy[i] = push.energy;
+                direction[i] = push.direction;
+                next_push = time_of_collision;
+                nucleus_index = Math.min(i, nucleus_index);
+                return;
+            }
+        }
+
+        for (int a=0; a<n; a++) {
+            int i = a;
+            if (i == nucleus_index)
+                continue;
+            Push push = Hohmann.generatePush(asteroids[i], i, asteroids[nucleus_index], time);
+            Asteroid pushed_asteroid = Asteroid.push(asteroids[i], time, push.energy, push.direction);
+            long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[nucleus_index], push.expected_collision_time,
+                        time, time_limit);
+            if (time_of_collision != -1) {
+                System.out.println("Found a collision in give up");
+                energy[i] = push.energy;
+                direction[i] = push.direction;
+                next_push = time_of_collision;
+                nucleus_index = Math.min(i, nucleus_index);
+                return;
+            }
+        }
+/*
+        for (int a=0; a<largest_asteroids.size(); a++) {
+            int i = a;
+            for (int b=a+1; b<largest_asteroids.size(); b++) {
+                int j = b;
+                if (asteroids[i].mass > asteroids[j].mass) {
+                    int t = i;
+                    i = j;
+                    j = t;
+                }
                 Push push = Hohmann.generatePush(asteroids[i], i, asteroids[j], time);
                 Asteroid pushed_asteroid = Asteroid.push(asteroids[i], time, push.energy, push.direction);
-
                 long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[j], push.expected_collision_time,
-                        time, time_limit);
+                            time, time_limit);
                 if (time_of_collision != -1) {
                     System.out.println("Found a collision in give up");
                     energy[i] = push.energy;
                     direction[i] = push.direction;
                     next_push = time_of_collision;
+                    nucleus_index = Math.min(i, j);
                     return;
                 }
             }
         }
+
+        for (int a=0; a<n; a++) {
+            int i = a;
+            for (int b=a+1; b<n; b++) {
+                int j = b;
+                if (asteroids[i].mass > asteroids[j].mass) {
+                    int t = i;
+                    i = j;
+                    j = t;
+                }
+                Push push = Hohmann.generatePush(asteroids[i], i, asteroids[j], time);
+                Asteroid pushed_asteroid = Asteroid.push(asteroids[i], time, push.energy, push.direction);
+                long time_of_collision = CollisionChecker.checkCollision(pushed_asteroid, asteroids[j], push.expected_collision_time,
+                            time, time_limit);
+                if (time_of_collision != -1) {
+                    System.out.println("Found a collision in give up");
+                    energy[i] = push.energy;
+                    direction[i] = push.direction;
+                    next_push = time_of_collision;
+                    nucleus_index = Math.min(i, j);
+                    return;
+                }
+            }
+        }
+*/
     }
 }
