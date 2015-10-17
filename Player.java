@@ -38,12 +38,18 @@ public class Player implements pb.sim.Player {
         // Sort asteroids in order of how attractive they are to become nucleus
         int n = asteroids.length;
         ArrayList<ComparableAsteroid> sorted_asteroids = new ArrayList<ComparableAsteroid>();
+
+        // Compute mean and stddev of asteroid masses
+        double mean = Utils.mean(asteroids);
+        double stddev = Utils.stddev(asteroids, mean);
+
         Point asteroid_position = new Point();
         Point sun = new Point(0, 0);
         for (int i = 0; i < n; i++) {
             asteroids[i].orbit.positionAt(time - asteroids[i].epoch, asteroid_position);
-            sorted_asteroids.add(new ComparableAsteroid(i, Point.distance(sun, asteroid_position), asteroids[i].mass));
             total_mass += asteroids[i].mass;
+            sorted_asteroids.add(new ComparableAsteroid(asteroids[i], i, Point.distance(sun, asteroid_position), asteroids[i].mass,
+                    asteroids[i].orbit.velocityAt(0).magnitude(), mean, stddev, asteroids));
         }
         Collections.sort(sorted_asteroids);
 
