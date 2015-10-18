@@ -2,6 +2,8 @@ package pb.g2;
 
 import pb.sim.Asteroid;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
 public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
@@ -32,12 +34,17 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
     }
 
     private double getTotalEnergyToPushToAsteroid(Asteroid[] asteroids) {
-        double energy = 0;
+        ArrayList<Double> energy = new ArrayList<>();
         for (Asteroid other : asteroids) {
             Push push = Hohmann.generatePush(other, -1, this.asteroid, 0);
-            energy += push.energy;
+            energy.add(push.energy);
         }
-        return energy;
+        Collections.sort(energy);
+        double sum = 0;
+        for (int i = 0; i < energy.size() / 2; i ++) {
+            sum += energy.get(i);
+        }
+        return sum;
     }
 
     private double getTotalEnergy() {

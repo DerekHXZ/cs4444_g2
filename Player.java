@@ -127,7 +127,7 @@ public class Player implements pb.sim.Player {
 
         if (time > 0.9*time_limit) {
             // ¯\_(ツ)_/¯
-            giveUpAndFinish(nucleus_index, asteroids, energy, direction);
+            giveUpAndFinish(asteroids, energy, direction);
         }
 
         giveUpAndFinish(asteroids, energy, direction);
