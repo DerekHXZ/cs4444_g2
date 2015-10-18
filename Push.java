@@ -21,6 +21,6 @@ public class Push implements Comparable<Push> {
 
     @Override
     public int compareTo(Push o) {
-        return Long.valueOf(time).compareTo(o.time);
+        return Double.valueOf(energy).compareTo(o.energy);
     }
 }
