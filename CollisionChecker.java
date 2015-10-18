@@ -19,11 +19,12 @@ public class CollisionChecker {
         final int EPSILON_TIME = 720;
         for (long ft = -EPSILON_TIME; ft <= EPSILON_TIME; ++ft) {
             long t = time + expected_time_of_collision + ft;
+            if (t <= time) continue;
             if (time_limit != -1 && t >= time_limit) break;
-            a1.orbit.positionAt(t - a1.epoch, p1);
-            a2.orbit.positionAt(t - a2.epoch, p2);
+
+            int[][] collisions = Asteroid.test_collision(new Asteroid[]{a1, a2}, t);
             // if collision, return push to the simulator
-            if (Point.distance(p1, p2) < r) {
+            if (collisions.length > 0) {
                 return t;
             }
         }

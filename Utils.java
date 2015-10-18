@@ -41,4 +41,13 @@ public class Utils {
         }
         return Math.sqrt(mean/asteroids.length);
     }
+
+    public static Asteroid findAsteroidById(Asteroid[] asteroids, long id) {
+        for (Asteroid a : asteroids) {
+            if (a.id == id) {
+                return a;
+            }
+        }
+        return null;
+    }
 }

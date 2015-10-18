@@ -20,7 +20,7 @@ public class Hohmann {
 		if (dv < 0)
 			direction += Math.PI;
         //System.out.println("expected collision time: " + expected_collision_time);
-		return new Push(a1, asteroid_to_push_index, energy, direction, expected_collision_time);
+		return new Push(a1, asteroid_to_push_index, energy, direction, time, expected_collision_time);
 	}
 
 	/**
@@ -37,7 +37,7 @@ public class Hohmann {
 
 		double energy = asteroid.mass * Math.pow(dv.magnitude(), 2) / 2;
 		double direction = dv.direction();
-		return new Push(asteroid, asteroid_to_push_index, energy, direction, -1);
+		return new Push(asteroid, asteroid_to_push_index, energy, direction, -1, -1);
 	}
 
 	/**
@@ -81,6 +81,7 @@ public class Hohmann {
 		long wait_time = (long)(raw_time / Orbit.dt());
 
 		for (long push_time = time + wait_time - 5; push_time <= time + wait_time + 5; push_time++) {
+			if (push_time < time+1) continue;
 			Push p = generatePush(a, 0, b, push_time);
 			Asteroid pushed_asteroid = Asteroid.push(p.asteroid, push_time, p.energy, p.direction);
 			if (CollisionChecker.checkCollision(pushed_asteroid, b, p.expected_collision_time, push_time, -1) != -1) {
