@@ -19,6 +19,7 @@ public class Player implements pb.sim.Player {
 	private long next_push = 0;
 
 	private long period;
+    private boolean progress;
 
     private static double EPSILON = 10e-6;
     private Asteroid nucleus;
@@ -57,12 +58,17 @@ public class Player implements pb.sim.Player {
         nucleus_index = sorted_asteroids.get(n - 1).index;
         // System.out.println("Found nucleus id " + nucleus_index + ", mass " + asteroids[nucleus_index].mass);
         nucleus = asteroids[nucleus_index];
+
+        progress = false;
 	}
 
 	// try to push asteroid
 	public void play(Asteroid[] asteroids,
 	                 double[] energy, double[] direction) {
         time++;
+
+        if (time % this.period == 0)
+            progress = false;
 
         int n = asteroids.length;
 
@@ -122,15 +128,14 @@ public class Player implements pb.sim.Player {
             energy[min_push.index] = min_push.energy;
             direction[min_push.index] = min_push.direction;
             next_push = min_push_time_of_collision;
+            progress = true;
             return;
         }
 
-        if (time > 0.9*time_limit) {
+        if (time > 0.9*time_limit || !progress) {
             // ¯\_(ツ)_/¯
             giveUpAndFinish(asteroids, energy, direction);
         }
-
-        giveUpAndFinish(asteroids, energy, direction);
     }
 
 
@@ -170,6 +175,7 @@ public class Player implements pb.sim.Player {
                 direction[i] = push.direction;
                 next_push = time_of_collision;
                 nucleus_index = Math.min(i, nucleus_index);
+                progress = true;
                 return;
             }
         }
@@ -188,6 +194,7 @@ public class Player implements pb.sim.Player {
                 direction[i] = push.direction;
                 next_push = time_of_collision;
                 nucleus_index = Math.min(i, nucleus_index);
+                progress = true;
                 return;
             }
         }
