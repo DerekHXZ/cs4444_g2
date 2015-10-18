@@ -43,11 +43,12 @@ public class Hohmann {
 	/**
 	 * Return the time after current time when asteroid a can be pushed to b with Hohmann Transfer.
  	 */
-	public static double timeToPush(long time, Asteroid a, Asteroid b) {
+	public static long timeToPush(long time, Asteroid a, Asteroid b) {
 		double ra = a.orbit.a;
 		double rb = b.orbit.a;
 
-		double angle = Math.PI * (1 - Math.pow(1 + ra / rb, 1.5) / Math.sqrt(8));
+		double angle = Math.PI * (1 - Math.pow(1 + ra / rb, 1.5) / Math.sqrt(8)) % ( 2 * Math.PI );
+		if (angle < 0) angle += 2 * Math.PI;
 
 		double aa = a.orbit.positionAt(time - a.epoch).direction();
 		double ba = b.orbit.positionAt(time - b.epoch).direction();
@@ -56,25 +57,19 @@ public class Hohmann {
 		if (angle_now < 0) angle_now += Math.PI * 2;
 
 		double alphaa = a.orbit.velocityAt(time - a.epoch).magnitude() / ra;
-		double alphab = a.orbit.velocityAt(time - b.epoch).magnitude() / rb;
+		double alphab = b.orbit.velocityAt(time - b.epoch).magnitude() / rb;
 
 		double raw_time;
 
-		if (Math.abs(alphaa - alphab) < 1e-5) {
-			return -1;
+		if (Math.abs(alphaa - alphab) < 1e-15) {
+			return -1; // Cannot transfer
 		}
 
-		if (angle_now >= angle) {
-			if (alphaa >= alphab) {
-				raw_time =  (angle_now - angle) / (alphaa - alphab);
-			} else {
-				raw_time =  (Math.PI * 2 - angle_now + angle) / (alphab - alphaa);
-			}
-		} else {
-			if (alphab >= alphaa) {
-				raw_time =  (angle - angle_now) / (alphaa - alphab);
-			} else {
-				raw_time = (Math.PI * 2 - angle + angle_now) / (alphab - alphaa);
+		raw_time = (angle_now - angle) / (alphaa - alphab);
+		if (raw_time < 0) {
+			raw_time = (angle_now - angle + 2 * Math.PI) / (alphaa - alphab);
+			if (raw_time < 0) {
+				raw_time = (angle_now - angle - 2 * Math.PI) / (alphaa - alphab);
 			}
 		}
 
@@ -84,9 +79,11 @@ public class Hohmann {
 		}
 		// Check actual time to push
 		long wait_time = (long)(raw_time / Orbit.dt());
-		for (long push_time = time + wait_time - 2; push_time <= time + wait_time + 2; push_time++) {
+
+		for (long push_time = time + wait_time - 5; push_time <= time + wait_time + 5; push_time++) {
 			Push p = generatePush(a, 0, b, push_time);
-			if (CollisionChecker.checkCollision(p.asteroid, b, p.expected_collision_time, push_time, -1) != -1) {
+			Asteroid pushed_asteroid = Asteroid.push(p.asteroid, push_time, p.energy, p.direction);
+			if (CollisionChecker.checkCollision(pushed_asteroid, b, p.expected_collision_time, push_time, -1) != -1) {
 				return push_time;
 			}
 		}
