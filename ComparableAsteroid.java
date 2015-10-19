@@ -33,18 +33,46 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
         return energy;
     }
 
+    private final int DISCRETE_ENERGY_LVLS = 100000;
+
     private double getTotalEnergyToPushToAsteroid(Asteroid[] asteroids) {
+
         ArrayList<Double> energy = new ArrayList<>();
+        ArrayList<Double> mass   = new ArrayList<>();
+        ArrayList<Integer> energy_d = new ArrayList<>();
+        double total_mass = 0, total_energy = 0;
+
         for (Asteroid other : asteroids) {
-            Push push = Hohmann.generatePush(other, -1, this.asteroid, 0);
-            energy.add(push.energy);
+            if (other != this.asteroid) {
+                Push push = Hohmann.generatePush(other, -1, this.asteroid, 0);
+                energy.add(push.energy);
+                mass.add(other.mass);
+
+                total_energy += push.energy;
+            }
+
+            total_mass += other.mass;
         }
-        Collections.sort(energy);
-        double sum = 0;
-        for (int i = 0; i < energy.size() / 2; i ++) {
-            sum += energy.get(i);
+
+        for (Double e : energy) {
+            energy_d.add((int) (e / total_energy * DISCRETE_ENERGY_LVLS));
         }
-        return sum;
+
+        double[][] dp = new double[DISCRETE_ENERGY_LVLS][mass.size()];
+        for (int i = 0; i < DISCRETE_ENERGY_LVLS; i++) {
+            if (i >= energy_d.get(0)) dp[i][0] = mass.get(0); else dp[i][0] = 0;
+            for (int j = 1; j < mass.size(); j++) {
+                dp[i][j] = dp[i][j-1];
+                if (i > mass.get(j)) {
+                    dp[i][j] = Math.max(dp[i][j], dp[i-energy_d.get(j)][j] + mass.get(j));
+                }
+            }
+            if (this.mass + dp[i][mass.size()-1] >= total_mass / 2) {
+                return total_energy * i / DISCRETE_ENERGY_LVLS;
+            }
+        }
+
+        return total_energy;
     }
 
     private double getTotalEnergy() {
