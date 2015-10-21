@@ -2,7 +2,9 @@ package pb.g2;
 
 import pb.sim.Asteroid;
 
-public class Push implements Comparable<Push> {
+import java.util.Comparator;
+
+public class Push {
     Asteroid asteroid;
     int index;
     double energy;
@@ -19,8 +21,17 @@ public class Push implements Comparable<Push> {
         this.expected_collision_time = expected_collision_time;
     }
 
-    @Override
-    public int compareTo(Push o) {
-        return Double.valueOf(energy).compareTo(o.energy);
+    public static class EnergyComparator implements Comparator<Push> {
+        @Override
+        public int compare(Push a, Push b) {
+            return Double.compare(a.energy, b.energy);
+        }
+    }
+
+    public static class TimeComparator implements Comparator<Push> {
+        @Override
+        public int compare(Push a, Push b) {
+            return Long.compare(a.time, b.time);
+        }
     }
 }

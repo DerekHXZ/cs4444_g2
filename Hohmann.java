@@ -62,6 +62,7 @@ public class Hohmann {
 		double raw_time;
 
 		if (Math.abs(alphaa - alphab) < 1e-15) {
+			System.out.println("Too close");
 			return -1; // Cannot transfer
 		}
 
@@ -75,6 +76,7 @@ public class Hohmann {
 
 		if (raw_time == Double.NaN || raw_time > Long.MAX_VALUE) {
 			// Overflow
+			System.out.println("Time wrong");
 			return -1;
 		}
 		// Check actual time to push
@@ -88,6 +90,7 @@ public class Hohmann {
 				return push_time;
 			}
 		}
+		System.out.println("Unknown error");
 		return -1;
 	}
 }
