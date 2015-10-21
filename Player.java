@@ -24,6 +24,8 @@ public class Player implements pb.sim.Player {
     private double total_mass = 0.0;
 
     private boolean finish_flag = false;
+    private double target_mass;
+    private double current_mass;
 
     private HashSet<Long> seenId;
 
@@ -49,13 +51,26 @@ public class Player implements pb.sim.Player {
 
         Point asteroid_position = new Point();
         Point sun = new Point(0, 0);
+        double largest_mass = 0;
         for (int i = 0; i < n; i++) {
             asteroids[i].orbit.positionAt(time - asteroids[i].epoch, asteroid_position);
             total_mass += asteroids[i].mass;
+            if (asteroids[i].mass > largest_mass) {
+                largest_mass = asteroids[i].mass;
+            }
             sorted_asteroids.add(new ComparableAsteroid(asteroids[i], i, Point.distance(sun, asteroid_position), asteroids[i].mass,
                     asteroids[i].orbit.velocityAt(0).magnitude(), mean, stddev, asteroids));
         }
         Collections.sort(sorted_asteroids);
+
+        if (largest_mass >= total_mass / 2) {
+            target_mass = total_mass;
+        } else {
+            target_mass = total_mass / 2;
+        }
+
+        System.out.println("Total mass is: " + total_mass);
+        System.out.println("Target mass is: " + target_mass);
 
         // Get nucleus asteroid to which we will push all other asteroids
         int nucleus_index = sorted_asteroids.get(n - 1).index;
@@ -67,12 +82,16 @@ public class Player implements pb.sim.Player {
         for (Asteroid a : asteroids) {
             seenId.add(a.id);
         }
-    }
+
+        current_mass = asteroids[nucleus_index].mass;
+	}
 
     // try to push asteroid
     public void play(Asteroid[] asteroids,
                      double[] energy, double[] direction) {
         time++;
+
+        int n = asteroids.length;
 
         /* fix orbits of troublemaker asteroids that intially shared the same orbit with nucleus */
         if (!troublemakers.isEmpty()) {
@@ -97,13 +116,14 @@ public class Player implements pb.sim.Player {
             // Check for non-circular orbit
             int new_asteroid_idx = 0;
             for (int i = 0; i < asteroids.length; i++) {
-                if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > EPSILON) {
-                    // Correct for non-circular orbit
-                    Push push = Hohmann.generateCorrection(asteroids[i], i, time);
-                    energy[i] = push.energy;
-                    direction[i] = push.direction;
-                }
                 if (!seenId.contains(asteroids[i].id)) {
+                    if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > EPSILON) {
+                        // Correct for non-circular orbit
+                        System.out.println("CORRECTION");
+                        Push push = Hohmann.generateCorrection(asteroids[i], i, time);
+                        energy[i] = push.energy;
+                        direction[i] = push.direction;
+                    }
                     new_asteroid_idx = i;
                     seenId.add(asteroids[i].id);
                 }
@@ -155,22 +175,23 @@ public class Player implements pb.sim.Player {
                 if (collision_time != -1) {
                     energy[index] = push_info.energy;
                     direction[index] = push_info.direction;
-                    next_push = collision_time + 1;
-                    System.out.println("This is " + time + ". Collision will happen at " + next_push);
+                    // next_push = collision_time+1;
+                    System.out.println("This is " + time + ". Collision will happen at " + time + push_info.expected_collision_time);
 
-                    push_info = null;
-                    return;
                 } else {
-                    System.out.println("WTF");
+                    current_mass -= push_info.asteroid.mass;
+                    System.out.println("Didn't happen");
                 }
 
+                next_push = -1;
+                push_info = null;
             }
-            System.out.println("WTF");
         }
 
         // Of all remaining asteroids, find the one with lowest energy push
+        System.out.println("There are " + n + " asteroids to be considered.");
         ArrayList<Push> pushes = new ArrayList<Push>();
-        for (int i = 0; i < asteroids.length; i++) {
+        for (int i = 0; i < n; i++) {
             if (asteroids[i].id == nucleus_id) {
                 continue;
             }
@@ -190,10 +211,27 @@ public class Player implements pb.sim.Player {
                 }
             }
         }
-        Collections.sort(pushes);
-        if (!pushes.isEmpty()) {
-            push_info = pushes.get(0);
+
+        Collections.sort(pushes, new Push.EnergyComparator());
+
+        double mass_considered = 0;
+        System.out.println(target_mass - current_mass);
+        ArrayList<Push> valid_pushes = new ArrayList<Push>();
+        for (Push p: pushes) {
+            if (mass_considered < target_mass - current_mass) {
+                mass_considered += p.asteroid.mass;
+                valid_pushes.add(p);
+                System.out.println("Time: " + p.time / 365.0 + " Energy: " + p.energy + " Mass: " + target_mass);
+            }
+        }
+
+        Collections.sort(valid_pushes, new Push.TimeComparator());
+
+        System.out.println("There are " + valid_pushes.size() + " asteroids that can be pushed.");
+        if (!valid_pushes.isEmpty()) {
+            push_info = valid_pushes.get(0);
             next_push = push_info.time;
+            current_mass += push_info.asteroid.mass;
             System.out.println("This is " + time + ". Push will happen at " + next_push);
             return;
         }
