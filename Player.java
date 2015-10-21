@@ -73,6 +73,9 @@ public class Player implements pb.sim.Player {
     public void play(Asteroid[] asteroids,
                      double[] energy, double[] direction) {
         time++;
+        if (time > 0.9 * time_limit) {
+            finish_flag = true;
+        }
 
         /* fix orbits of troublemaker asteroids that intially shared the same orbit with nucleus */
         if (!troublemakers.isEmpty()) {
@@ -168,6 +171,11 @@ public class Player implements pb.sim.Player {
             System.out.println("WTF");
         }
 
+        if (finish_flag) {
+            finishGame(asteroids, nucleus, energy, direction);
+            continue;
+        }
+        
         // Of all remaining asteroids, find the one with lowest energy push
         ArrayList<Push> pushes = new ArrayList<Push>();
         for (int i = 0; i < asteroids.length; i++) {
@@ -197,13 +205,6 @@ public class Player implements pb.sim.Player {
             System.out.println("This is " + time + ". Push will happen at " + next_push);
             return;
         }
-
-        /*
-        if (time > 0.9 * time_limit) {
-            finish_flag = true;
-            finishGame(asteroids, nucleus, energy, direction);
-        }
-        */
     }
 
 
@@ -214,13 +215,14 @@ public class Player implements pb.sim.Player {
     public void finishGame(Asteroid[] asteroids, Asteroid nucleus, double[] energy, double[] direction) {
         int n = asteroids.length;
         ArrayList<Asteroid> largest_asteroids = new ArrayList<Asteroid>();
+        ArrayList<Push> pushes = new ArrayList<Push>();
 
         for (int i = 0; i < n; i++) {
             largest_asteroids.add(asteroids[i]);
         }
 
         // Sort asteroids in decreasing order by mass
-        Collections.sort(largest_asteroids,new Comparator<Asteroid>() {
+        Collections.sort(largest_asteroids, new Comparator<Asteroid>() {
             public int compare(Asteroid a1, Asteroid a2) {
                 return -1*(Double.compare(a1.mass, a2.mass));
             }
@@ -235,6 +237,12 @@ public class Player implements pb.sim.Player {
                     pushes.add(push);
                 }
             }
+        }
+        Collections.sort(pushes);
+        if (!pushes.isEmpty()) {
+            push_info = pushes.get(0);
+            next_push = push_info.time;
+            System.out.println("This is " + time + ". Push will happen at " + next_push);
         }
     }
 }
