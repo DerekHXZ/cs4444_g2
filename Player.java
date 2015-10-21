@@ -11,6 +11,7 @@ public class Player implements pb.sim.Player {
     // current time, time limit
     private long time = -1;
     private long time_limit = -1;
+    private long min_time_limit = 36500;
 
     private int number_of_asteroids;
 
@@ -18,6 +19,7 @@ public class Player implements pb.sim.Player {
     private boolean progress;
 
     private static double EPSILON = 10e-6;
+    private Asteroid nucleus;
     private long nucleus_id;
     private double total_mass = 0.0;
 
@@ -29,8 +31,9 @@ public class Player implements pb.sim.Player {
     private HashSet<Long> seenId;
 
     private ArrayList<Long> troublemakers = new ArrayList<Long>();
+    private double orbit_multiplier;
+
     private Queue<Push> push_queue;
-    private double current_mass;
 
     private HashSet<Long> usedId;
 
@@ -79,6 +82,9 @@ public class Player implements pb.sim.Player {
 
         // Get nucleus asteroid to which we will push all other asteroids
         int nucleus_index = sorted_asteroids.get(n - 1).index;
+        nucleus = asteroids[nucleus_index];
+        nucleus_id = nucleus.id;
+
         System.out.println("Predicted Energy: " + sorted_asteroids.get(n - 1).energy);
         nucleus_id = asteroids[nucleus_index].id;
         // System.out.println("Found nucleus id " + nucleus_id + ", mass " + asteroids[nucleus_id].mass);
@@ -94,7 +100,18 @@ public class Player implements pb.sim.Player {
 
         // Initialize Queue
         push_queue = new PriorityQueue<>(new Push.TimeComparator());
-        current_mass = 0;
+
+        if (nucleus.orbit.a < 3e11) {
+            orbit_multiplier = 1.01;
+        } else if (nucleus.orbit.a < 8e11) {
+            if (time_limit > 2*min_time_limit) {
+                orbit_multiplier = 1.02;
+            } else {
+                orbit_multiplier = 1.05;
+            }
+        } else {
+            orbit_multiplier = 1.1;
+        }
 	}
 
     // try to push asteroid
@@ -181,7 +198,7 @@ public class Player implements pb.sim.Player {
             no_progress = false;
         }
 
-        Asteroid nucleus = Utils.findAsteroidById(asteroids, nucleus_id);
+        nucleus = Utils.findAsteroidById(asteroids, nucleus_id);
 
         /* push out asteroids that share the same orbit with nucleus */
         for (int i = 0; i < asteroids.length; i++) {
@@ -193,7 +210,7 @@ public class Player implements pb.sim.Player {
                 && Math.abs(ast.orbit.b - nucleus.orbit.b) <= EPSILON
                 ) {
                 troublemakers.add(ast.id);
-                Push push = Hohmann.generatePushToRadius(ast, i, ast.orbit.a*1.05, time);
+                Push push = Hohmann.generatePushToRadius(ast, i, ast.orbit.a*orbit_multiplier, time);
                 energy[i] = push.energy;
                 direction[i] = push.direction;
             }
@@ -209,7 +226,6 @@ public class Player implements pb.sim.Player {
 
         while (!push_queue.isEmpty() && time == push_queue.peek().time) {
             Push push_info = push_queue.remove();
-            current_mass -= push_info.asteroid.mass;
 
             int index;
             for (index = 0; index < asteroids.length; index++) {
