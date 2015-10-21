@@ -34,6 +34,8 @@ public class Player implements pb.sim.Player {
 
     private HashSet<Long> usedId;
 
+    private boolean no_progress;
+
     // print orbital information
 	public void init(Asteroid[] asteroids, long time_limit)
 	{
@@ -175,6 +177,8 @@ public class Player implements pb.sim.Player {
             number_of_asteroids = asteroids.length;
 
             unlock_time = -1;
+
+            no_progress = false;
         }
 
         Asteroid nucleus = Utils.findAsteroidById(asteroids, nucleus_id);
@@ -288,11 +292,19 @@ public class Player implements pb.sim.Player {
     Push push_info = null;
     long next_push = -1;
 
+    double mass_total = 0;
+
     /**
      * Worst case: If we could not collide anything into the nucleus,
      * find the biggest masses and try to collide them
      */
     public void finishGame(Asteroid[] asteroids, Asteroid nucleus, double[] energy, double[] direction) {
+
+        if (mass_total == 0) {
+            for (Asteroid a: asteroids) {
+                if (a.mass > mass_total) mass_total = a.mass;
+            }
+        }
 
         if (time < next_push) return;
         if (time == next_push) {
@@ -307,6 +319,8 @@ public class Player implements pb.sim.Player {
                 asteroids[index] = Asteroid.push(asteroids[index], time, push_info.energy, push_info.direction);
             }
         }
+
+        if (no_progress || mass_total >= target_mass) return;
 
         int n = asteroids.length;
         ArrayList<Asteroid> largest_asteroids = new ArrayList<Asteroid>();
@@ -338,6 +352,9 @@ public class Player implements pb.sim.Player {
             push_info = pushes.get(0);
             next_push = push_info.time;
             System.out.println("This is " + time + ". Push will happen at " + next_push);
+            mass_total += push_info.asteroid.mass;
+        } else {
+            no_progress = true;
         }
     }
 }
