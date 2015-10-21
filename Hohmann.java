@@ -23,6 +23,19 @@ public class Hohmann {
 		return new Push(a1, asteroid_to_push_index, energy, direction, time, expected_collision_time);
 	}
 
+	// same as above, but with target radius instead of target planet
+	public static Push generatePushToRadius(Asteroid a1, int asteroid_to_push_index, double r2, long time) {
+		double r1 = a1.orbit.a;
+		double dv = Math.sqrt(pb.sim.Orbit.GM / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1);
+		long expected_collision_time = (long) Math.ceil(Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * Orbit.GM)) / Orbit.dt());
+		double energy = a1.mass * Math.pow(dv, 2) / 2;
+		double direction = a1.orbit.velocityAt(time - a1.epoch).direction();
+		if (dv < 0)
+			direction += Math.PI;
+        //System.out.println("expected collision time: " + expected_collision_time);
+		return new Push(a1, asteroid_to_push_index, energy, direction, time, expected_collision_time);
+	}
+
 	/**
 	 * Generate a Hohmann Transfer push to correct an elliptical orbit
 	 * to a circular one with radius = semi-major axis length of ellipse.
