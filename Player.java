@@ -193,7 +193,7 @@ public class Player implements pb.sim.Player {
 
         if (finish_flag) {
             finishGame(asteroids, nucleus, energy, direction);
-            continue;
+            return;
         }
         
         // Of all remaining asteroids, find the one with lowest energy push
@@ -276,7 +276,7 @@ public class Player implements pb.sim.Player {
                 }
             }
         }
-        Collections.sort(pushes);
+        Collections.sort(pushes, new Push.TimeComparator());
         if (!pushes.isEmpty()) {
             push_info = pushes.get(0);
             next_push = push_info.time;
