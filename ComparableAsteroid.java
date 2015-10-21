@@ -33,6 +33,23 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
         return energy;
     }
 
+    // Pseudoscience
+    private double getTotalEnergyToPushToAsteroid(Asteroid[] asteroids) {
+
+        ArrayList<Double> energy = new ArrayList<Double>();
+
+        for (Asteroid other : asteroids) {
+            Push push = Hohmann.generatePush(other, -1, this.asteroid, 0);
+            energy.add(push.energy);
+        }
+        Collections.sort(energy);
+        double sum = 0;
+        for (int i = 0; i < energy.size() / 2; i ++) {
+            sum += energy.get(i);
+        }
+        return sum;
+    }
+
     // Experimental: DP for the nucleus; it didn't work as well as expected, but we
     // hope someone can see this.
     /*
