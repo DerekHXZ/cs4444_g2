@@ -14,10 +14,8 @@ public class Player implements pb.sim.Player {
 
     private int number_of_asteroids;
 
-    private long next_push = -1;
-    private Push push_info = null;
-
-    private long period;
+	private long period;
+    private boolean progress;
 
     private static double EPSILON = 10e-6;
     private long nucleus_id;
@@ -25,21 +23,25 @@ public class Player implements pb.sim.Player {
 
     private boolean finish_flag = false;
     private double target_mass;
-    private double current_mass;
+
+    private double unlock_time = -1;
 
     private HashSet<Long> seenId;
 
     private ArrayList<Long> troublemakers = new ArrayList<Long>();
+    private Queue<Push> push_queue;
+    private double current_mass;
 
-    private Queue<Push> pushes = new LinkedList<Push>();
+    private HashSet<Long> usedId;
 
     // print orbital information
-    public void init(Asteroid[] asteroids, long time_limit) {
-        if (Orbit.dt() != 24 * 60 * 60)
-            throw new IllegalStateException("Time quantum is not a day");
-        this.time_limit = time_limit;
-        this.number_of_asteroids = asteroids.length;
-        this.period = time_limit / this.number_of_asteroids;
+	public void init(Asteroid[] asteroids, long time_limit)
+	{
+		if (Orbit.dt() != 24 * 60 * 60)
+			throw new IllegalStateException("Time quantum is not a day");
+		this.time_limit = time_limit;
+		this.number_of_asteroids = asteroids.length;
+		this.period = time_limit / this.number_of_asteroids;
 
         // Sort asteroids in order of how attractive they are to become nucleus
         int n = asteroids.length;
@@ -51,7 +53,9 @@ public class Player implements pb.sim.Player {
 
         Point asteroid_position = new Point();
         Point sun = new Point(0, 0);
+
         double largest_mass = 0;
+
         for (int i = 0; i < n; i++) {
             asteroids[i].orbit.positionAt(time - asteroids[i].epoch, asteroid_position);
             total_mass += asteroids[i].mass;
@@ -62,7 +66,6 @@ public class Player implements pb.sim.Player {
                     asteroids[i].orbit.velocityAt(0).magnitude(), mean, stddev, asteroids));
         }
         Collections.sort(sorted_asteroids);
-
         if (largest_mass >= total_mass / 2) {
             target_mass = total_mass;
         } else {
@@ -74,6 +77,7 @@ public class Player implements pb.sim.Player {
 
         // Get nucleus asteroid to which we will push all other asteroids
         int nucleus_index = sorted_asteroids.get(n - 1).index;
+        System.out.println("Predicted Energy: " + sorted_asteroids.get(n - 1).energy);
         nucleus_id = asteroids[nucleus_index].id;
         // System.out.println("Found nucleus id " + nucleus_id + ", mass " + asteroids[nucleus_id].mass);
 
@@ -83,13 +87,19 @@ public class Player implements pb.sim.Player {
             seenId.add(a.id);
         }
 
-        current_mass = asteroids[nucleus_index].mass;
+        usedId = new HashSet<>();
+        usedId.add(nucleus_id);
+
+        // Initialize Queue
+        push_queue = new PriorityQueue<>(new Push.TimeComparator());
+        current_mass = 0;
 	}
 
     // try to push asteroid
     public void play(Asteroid[] asteroids,
                      double[] energy, double[] direction) {
         time++;
+
         if (time > 0.9 * time_limit) {
             finish_flag = true;
         }
@@ -120,27 +130,51 @@ public class Player implements pb.sim.Player {
             int new_asteroid_idx = 0;
             for (int i = 0; i < asteroids.length; i++) {
                 if (!seenId.contains(asteroids[i].id)) {
+                    new_asteroid_idx = i;
+                    seenId.add(asteroids[i].id);
+
                     if (Math.abs(asteroids[i].orbit.a - asteroids[i].orbit.b) > EPSILON) {
                         // Correct for non-circular orbit
                         System.out.println("CORRECTION");
                         Push push = Hohmann.generateCorrection(asteroids[i], i, time);
                         energy[i] = push.energy;
                         direction[i] = push.direction;
+
+                        asteroids[i] = Asteroid.push(asteroids[i], time, energy[i], direction[i]);
+
+                        // Redo the queue
+
+                        Queue<Push> new_queue = new PriorityQueue<>(new Push.TimeComparator());
+                        for (Push p: push_queue) {
+                            Asteroid a = p.asteroid;
+                            long time_to_push = Hohmann.timeToPush(time, a, asteroids[i]);
+                            if (time_to_push != -1) {
+                                Push np = Hohmann.generatePush(a, -1, asteroids[i], time_to_push);
+                                if (time_to_push + np.expected_collision_time <= time_limit) {
+                                    new_queue.add(np);
+                                } else {
+                                    usedId.remove(a.id);
+                                }
+                            } else {
+                                System.out.println("WTF");
+                                usedId.remove(a.id);
+                            }
+                        }
+                        push_queue = new_queue;
+
                     }
-                    new_asteroid_idx = i;
-                    seenId.add(asteroids[i].id);
                 }
             }
 
             if (Utils.findAsteroidById(asteroids, nucleus_id) == null) {
                 nucleus_id = asteroids[new_asteroid_idx].id;
                 System.out.println("NUCLEUS ID CHANGED");
-            }
+                usedId.add(nucleus_id);
 
-            next_push = -1; // Void
-            push_info = null;
+            }
             number_of_asteroids = asteroids.length;
-            return;
+
+            unlock_time = -1;
         }
 
         Asteroid nucleus = Utils.findAsteroidById(asteroids, nucleus_id);
@@ -161,9 +195,18 @@ public class Player implements pb.sim.Player {
             }
         }
 
-        if (time < next_push) return;
-        if (time == next_push && push_info != null) {
-            // Push
+
+        if (finish_flag) {
+            finishGame(asteroids, nucleus, energy, direction);
+            return;
+        }
+
+        if (time < unlock_time) return;
+
+        while (!push_queue.isEmpty() && time == push_queue.peek().time) {
+            Push push_info = push_queue.remove();
+            current_mass -= push_info.asteroid.mass;
+
             int index;
             for (index = 0; index < asteroids.length; index++) {
                 if (asteroids[index].id == push_info.asteroid.id) {
@@ -171,86 +214,100 @@ public class Player implements pb.sim.Player {
                 }
             }
             if (index != asteroids.length) {
-
                 Asteroid a = Asteroid.push(asteroids[index], time, push_info.energy, push_info.direction);
                 long collision_time =
                         CollisionChecker.checkCollision(a, nucleus, push_info.expected_collision_time, time, time_limit);
                 if (collision_time != -1) {
                     energy[index] = push_info.energy;
                     direction[index] = push_info.direction;
-                    // next_push = collision_time+1;
+                    asteroids[index] = Asteroid.push(asteroids[index], time, push_info.energy, push_info.direction);
                     System.out.println("This is " + time + ". Collision will happen at " + time + push_info.expected_collision_time);
 
+                    unlock_time = time + push_info.expected_collision_time;
+                    while (!push_queue.isEmpty() && push_queue.peek().time < time + push_info.expected_collision_time) {
+                        usedId.remove(push_queue.remove().asteroid.id);
+                    }
                 } else {
-                    current_mass -= push_info.asteroid.mass;
                     System.out.println("Didn't happen");
-                }
-
-                next_push = -1;
-                push_info = null;
-            }
-        }
-
-        if (finish_flag) {
-            finishGame(asteroids, nucleus, energy, direction);
-            return;
-        }
-        
-        // Of all remaining asteroids, find the one with lowest energy push
-        System.out.println("There are " + n + " asteroids to be considered.");
-        ArrayList<Push> pushes = new ArrayList<Push>();
-        for (int i = 0; i < n; i++) {
-            if (asteroids[i].id == nucleus_id) {
-                continue;
-            }
-            int curr_asteroid_index = i;
-            Asteroid curr_asteroid = asteroids[curr_asteroid_index];
-
-            // Ignore asteroids with elliptical orbits
-            if (Math.abs(curr_asteroid.orbit.a - curr_asteroid.orbit.b) > EPSILON) {
-                continue;
-            }
-
-            long time_to_push = Hohmann.timeToPush(time, curr_asteroid, nucleus);
-            if (time_to_push != -1) {
-                Push push = Hohmann.generatePush(curr_asteroid, curr_asteroid_index, nucleus, time_to_push);
-                if (time_to_push + push.expected_collision_time <= time_limit) {
-                    pushes.add(push);
+                    usedId.remove(push_info.asteroid.id);
                 }
             }
         }
 
-        Collections.sort(pushes, new Push.EnergyComparator());
+        if (time < unlock_time) return;
 
-        double mass_considered = 0;
-        System.out.println(target_mass - current_mass);
-        ArrayList<Push> valid_pushes = new ArrayList<Push>();
-        for (Push p: pushes) {
-            if (mass_considered < target_mass - current_mass) {
-                mass_considered += p.asteroid.mass;
-                valid_pushes.add(p);
-                System.out.println("Time: " + p.time / 365.0 + " Energy: " + p.energy + " Mass: " + target_mass);
+
+        double used_mass = 0;
+        for (Asteroid a: asteroids) {
+            if (usedId.contains(a.id)) {
+                used_mass += a.mass;
             }
         }
 
-        Collections.sort(valid_pushes, new Push.TimeComparator());
+        if (used_mass < target_mass) {
+            // Of all remaining asteroids, find the one with lowest energy push
+            System.out.println("There are " + n + " asteroids to be considered.");
+            ArrayList<Push> pushes = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                if (asteroids[i].id == nucleus_id) {
+                    continue;
+                }
+                int curr_asteroid_index = i;
+                Asteroid curr_asteroid = asteroids[curr_asteroid_index];
+                // Ignore asteroids with elliptical orbits
+                if (usedId.contains(curr_asteroid.id)) {
+                    continue;
+                }
+                long time_to_push = Hohmann.timeToPush(time, curr_asteroid, nucleus);
+                if (time_to_push != -1) {
+                    Push push = Hohmann.generatePush(curr_asteroid, curr_asteroid_index, nucleus, time_to_push);
+                    if (time_to_push + push.expected_collision_time <= time_limit) {
+                        pushes.add(push);
+                    }
+                }
+            }
 
-        System.out.println("There are " + valid_pushes.size() + " asteroids that can be pushed.");
-        if (!valid_pushes.isEmpty()) {
-            push_info = valid_pushes.get(0);
-            next_push = push_info.time;
-            current_mass += push_info.asteroid.mass;
-            System.out.println("This is " + time + ". Push will happen at " + next_push);
-            return;
+            Collections.sort(pushes, new Push.EnergyComparator());
+
+            double mass_considered = 0;
+            ArrayList<Push> valid_pushes = new ArrayList<>();
+            for (Push p: pushes) {
+                if (mass_considered < target_mass - used_mass) {
+                    mass_considered += p.asteroid.mass;
+                    valid_pushes.add(p);
+                    System.out.println("Time: " + p.time / 365.0 + " Energy: " + p.energy + " Mass: " + target_mass);
+                    push_queue.add(p);
+                    usedId.add(p.asteroid.id);
+                }
+            }
+
         }
+
     }
 
+    Push push_info = null;
+    long next_push = -1;
 
     /**
      * Worst case: If we could not collide anything into the nucleus,
      * find the biggest masses and try to collide them
      */
     public void finishGame(Asteroid[] asteroids, Asteroid nucleus, double[] energy, double[] direction) {
+
+        if (time < next_push) return;
+        if (time == next_push) {
+            int index = 0;
+            for (index = 0; index < asteroids.length; index++) {
+                if (asteroids[index].id == push_info.asteroid.id)
+                    break;
+            }
+            if (index < asteroids.length) {
+                energy[index] = push_info.energy;
+                direction[index] = push_info.direction;
+                asteroids[index] = Asteroid.push(asteroids[index], time, push_info.energy, push_info.direction);
+            }
+        }
+
         int n = asteroids.length;
         ArrayList<Asteroid> largest_asteroids = new ArrayList<Asteroid>();
         ArrayList<Push> pushes = new ArrayList<Push>();
