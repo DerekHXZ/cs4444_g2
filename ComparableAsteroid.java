@@ -33,10 +33,14 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
         return energy;
     }
 
+    // Experimental: DP for the nucleus; it didn't work as well as expected, but we
+    // hope someone can see this.
+    /*
     private final int DISCRETE_ENERGY_LVLS = 100000;
-
     private double getTotalEnergyToPushToAsteroid(Asteroid[] asteroids) {
 
+
+        /*
         ArrayList<Double> energy = new ArrayList<Double>();
         ArrayList<Double> mass   = new ArrayList<Double>();
         ArrayList<Integer> energy_d = new ArrayList<Integer>();
@@ -63,17 +67,19 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
             if (i >= energy_d.get(0)) dp[i][0] = mass.get(0); else dp[i][0] = 0;
             for (int j = 1; j < mass.size(); j++) {
                 dp[i][j] = dp[i][j-1];
-                if (i > mass.get(j)) {
+                if (i > energy_d.get(j)) {
                     dp[i][j] = Math.max(dp[i][j], dp[i-energy_d.get(j)][j] + mass.get(j));
                 }
             }
             if (this.mass + dp[i][mass.size()-1] >= total_mass / 2) {
+                System.out.println(i);
                 return total_energy * i / DISCRETE_ENERGY_LVLS;
             }
         }
 
         return total_energy;
     }
+    */
 
     private double getTotalEnergy() {
         final double G = 6.67*10e-11;
