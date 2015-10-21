@@ -28,6 +28,8 @@ public class Player implements pb.sim.Player {
 
     private HashSet<Long> seenId;
 
+    private ArrayList<Long> troublemakers = new ArrayList<Long>();
+
 	// print orbital information
 	public void init(Asteroid[] asteroids, long time_limit)
 	{
@@ -78,6 +80,24 @@ public class Player implements pb.sim.Player {
         if (time % this.period == 0)
             progress = false;
 
+        /* fix orbits of troublemaker asteroids that intially shared the same orbit with nucleus */
+        if (!troublemakers.isEmpty()) {
+            ArrayList<Long> temp = new ArrayList<Long>();
+            for (long id : troublemakers) {
+                int t = Utils.findAsteroidIndexById(asteroids, id);
+                Point p1 = asteroids[t].orbit.positionAt(time);
+                Point p2 = asteroids[t].orbit.positionAt(time+1);
+                if (Math.hypot(p1.x, p1.y) > Math.hypot(p2.x, p2.y)) {
+                    Push push = Hohmann.generateCorrection(asteroids[t], t, time);
+                    energy[t] = push.energy;
+                    direction[t] = push.direction;
+                } else {
+                    temp.add(id);
+                }
+            }
+            troublemakers = temp;
+        }
+
         int n = asteroids.length;
 
         if (asteroids.length < number_of_asteroids) {
@@ -109,6 +129,22 @@ public class Player implements pb.sim.Player {
         }
 
         Asteroid nucleus = Utils.findAsteroidById(asteroids, nucleus_id);
+
+        /* push out asteroids that share the same orbit with nucleus */
+        for (int i = 0; i < asteroids.length; i++) {
+            Asteroid ast = asteroids[i];
+            if (nucleus == ast) {
+                continue;
+            }
+            if (Math.abs(ast.orbit.a - nucleus.orbit.a) <= EPSILON
+                && Math.abs(ast.orbit.b - nucleus.orbit.b) <= EPSILON
+                ) {
+                troublemakers.add(ast.id);
+                Push push = Hohmann.generatePushToRadius(ast, i, ast.orbit.a*1.05, time);
+                energy[i] = push.energy;
+                direction[i] = push.direction;
+            }
+        }
 
         if (time < next_push) return;
         if (time == next_push && push_info != null) {
