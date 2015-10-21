@@ -82,7 +82,7 @@ public class Hohmann {
 		// Check actual time to push
 		long wait_time = (long)(raw_time / Orbit.dt());
 
-		for (long push_time = time + wait_time - 5; push_time <= time + wait_time + 5; push_time++) {
+		for (long push_time = time + wait_time - 10; push_time <= time + wait_time + 10; push_time++) {
 			if (push_time < time+1) continue;
 			Push p = generatePush(a, 0, b, push_time);
 			Asteroid pushed_asteroid = Asteroid.push(p.asteroid, push_time, p.energy, p.direction);

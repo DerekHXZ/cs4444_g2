@@ -15,7 +15,7 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
 
     private double mean;
     private double stddev;
-    private double energy;
+    public double energy;
 
     public ComparableAsteroid(Asteroid asteroid, int index, double radius, double mass, double velocity, double mean, double stddev, Asteroid[] asteroids) {
         this.asteroid = asteroid;
