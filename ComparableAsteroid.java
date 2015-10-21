@@ -37,9 +37,9 @@ public class ComparableAsteroid implements Comparable<ComparableAsteroid> {
 
     private double getTotalEnergyToPushToAsteroid(Asteroid[] asteroids) {
 
-        ArrayList<Double> energy = new ArrayList<>();
-        ArrayList<Double> mass   = new ArrayList<>();
-        ArrayList<Integer> energy_d = new ArrayList<>();
+        ArrayList<Double> energy = new ArrayList<Double>();
+        ArrayList<Double> mass   = new ArrayList<Double>();
+        ArrayList<Integer> energy_d = new ArrayList<Integer>();
         double total_mass = 0, total_energy = 0;
 
         for (Asteroid other : asteroids) {

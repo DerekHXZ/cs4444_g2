@@ -50,4 +50,13 @@ public class Utils {
         }
         return null;
     }
+
+    public static int getAsteroidIndex(Asteroid[] asteroids, long id) {
+        for (int i = 0; i < asteroids.length; i++) {
+            if (asteroids[i].id == id) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }
