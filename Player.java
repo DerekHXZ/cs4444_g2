@@ -192,17 +192,8 @@ public class Player implements pb.sim.Player {
             }
         });
 
-        double mass = nucleus.mass;
-        ArrayList<Asteroid> asteroids_to_collide = new ArrayList<Asteroid>();
-        for (int i = 0; mass < 0.5*total_mass; i++) {
-            Asteroid large_asteroid = largest_asteroids.get(i);
-            if (large_asteroid.id == nucleus_id) continue;
-            asteroids_to_collide.add(large_asteroid);
-            mass += large_asteroid.mass;
-        }
-
-        for (int i = 0; i < asteroids_to_collide.size(); i++) {
-            Asteroid curr_asteroid = asteroids_to_collide.get(i);
+        for (int i = 0; i < largest_asteroids.size(); i++) {
+            Asteroid curr_asteroid = largest_asteroids.get(i);
             long time_to_push = Hohmann.timeToPush(time, curr_asteroid, nucleus);
             if (time_to_push != -1) {
                 Push push = Hohmann.generatePush(curr_asteroid, i, nucleus, time_to_push);
